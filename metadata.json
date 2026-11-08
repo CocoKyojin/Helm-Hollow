@@ -1,0 +1,6 @@
+{
+  "name": "Helm Hollow: Realms & Armory",
+  "description": "An action-RPG platformer MMO adventure. Wield 10 weapon classes, dual-wield blades and guns, fell timber trees, trade with Gimbal the merchant, and travel ancient realms.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

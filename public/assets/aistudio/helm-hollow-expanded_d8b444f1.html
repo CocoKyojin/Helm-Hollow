@@ -1,0 +1,2174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Helm Hollow: Realms & Armory</title>
+<meta name="description" content="Side-scrolling RPG platformer with in-game merchant NPC, realm travel portals, projectile weapons (bow & gun), and distinct weapon attack animations.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@500;700;800&display=swap">
+<style>
+:root{
+  --bg:#141b24; --panel:#1d2733; --panel2:#263445; --fg:#eef2f6; --muted:#9fb0c1;
+  --accent:#f2b134; --danger:#e4572e; --good:#6fbf73; --purple:#a87ffb;
+  --display:"Bungee","Impact",sans-serif; --body:"Nunito",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);margin:0;padding:0;color:var(--fg);font-family:var(--body);font-size:15px}
+body{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 32px}
+.wrap{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-size:clamp(22px,5vw,32px);margin:0;letter-spacing:.02em;color:var(--accent);text-wrap:balance}
+.sub{color:var(--muted);font-size:13px}
+.stage{position:relative;border-radius:10px;overflow:hidden;background:#0d141b;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+canvas{display:block;width:100%;max-width:100%;aspect-ratio:16/10}
+.hud{position:absolute;left:10px;top:10px;right:10px;display:flex;gap:10px;justify-content:space-between;pointer-events:none;flex-wrap:wrap}
+.bars{display:flex;flex-direction:column;gap:5px;min-width:0;width:min(230px,55%)}
+.bar{height:12px;background:rgba(0,0,0,.6);border-radius:6px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,.1)}
+.bar i{position:absolute;inset:0 auto 0 0;width:0;border-radius:6px;transition:width .25s ease-out}
+#hpb i{background:var(--danger)} #xpb i{background:var(--accent)}
+.hudr{font-family:var(--display);font-size:12px;text-align:right;text-shadow:0 1px 3px #000;line-height:1.5;color:#fff}
+.lv{font-family:var(--display);font-size:13px;text-shadow:0 1px 3px #000;color:#fff}
+.pad{position:absolute;bottom:12px;display:flex;gap:10px}
+.pad.l{left:12px}.pad.r{right:12px}
+.pad button{width:64px;height:64px;border-radius:50%;border:3px solid rgba(255,255,255,.6);background:rgba(0,0,0,.45);color:#fff;font-family:var(--display);font-size:11px;cursor:pointer;touch-action:none;backdrop-filter:blur(4px)}
+.pad button.on{background:rgba(242,177,52,.7);border-color:var(--accent)}
+.pad .sw{border-color:var(--accent);font-size:10px}
+@media (hover:hover) and (pointer:fine){.pad{display:none}}
+.toast{position:absolute;left:50%;top:56px;transform:translateX(-50%);background:rgba(0,0,0,.85);padding:6px 14px;border-radius:8px;font-weight:800;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis;color:#fff;border:1px solid rgba(255,255,255,.15);z-index:20}
+.toast.on{opacity:1}
+.bar-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button.btn{font:inherit;font-weight:800;background:var(--panel2);color:var(--fg);border:2px solid #3a4d63;border-radius:8px;padding:8px 14px;cursor:pointer;transition:all .15s}
+button.btn:hover{border-color:var(--accent);background:#2f4157} button.btn:focus-visible,.pad button:focus-visible,.it:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.help{color:var(--muted);font-size:12.5px;flex:1;min-width:220px;line-height:1.4}
+.bag{background:var(--panel);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px;border:1px solid rgba(255,255,255,.08)}
+.bag[hidden]{display:none}
+.bag h2{font-family:var(--display);font-size:16px;margin:0;letter-spacing:.03em;color:var(--accent)}
+.slots,.inv{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.it{background:var(--panel2);border-radius:8px;border:2px solid #3a4d63;padding:8px 10px;display:flex;flex-direction:row;align-items:center;gap:10px;text-align:left;min-width:0;color:var(--fg);font:inherit;cursor:pointer}
+.it b{overflow-wrap:anywhere}
+.it small{color:var(--muted)}
+.stats{display:flex;gap:16px;flex-wrap:wrap;color:var(--muted);font-weight:700;font-size:13px}
+.stats span b{color:var(--fg)}
+.row2{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.ico{flex:none;width:44px;height:44px;border-radius:6px;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
+.ico img{display:block;max-width:100%}
+.tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.buy{margin-top:4px;padding:5px 12px;font-size:13px;align-self:flex-start}
+.buy[disabled]{opacity:.45;cursor:not-allowed}
+.shopg{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.modal{position:absolute;inset:0;background:rgba(8,12,18,.88);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:30;padding:16px}
+.modal[hidden]{display:none}
+.modal-box{background:var(--panel);border:2px solid var(--purple);border-radius:12px;padding:18px;max-width:500px;width:100%;box-shadow:0 12px 36px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:12px}
+.modal-box.shop-box,.modal-box.bag-box{max-width:680px;border-color:var(--accent);max-height:88%;overflow-y:auto}
+.bag-sec-head{font-size:11.5px;text-transform:uppercase;letter-spacing:1px;font-weight:800;color:var(--muted);margin-top:3px;margin-bottom:3px}
+.shop-head{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:10px}
+.merchant-tag{display:flex;align-items:center;gap:12px}
+.merchant-avatar{font-size:32px;background:rgba(0,0,0,.4);width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--accent);flex:none}
+.merchant-quote{font-size:12.5px;color:var(--muted);font-style:italic}
+.close-icon{padding:4px 10px;font-size:15px;line-height:1}
+.shop-bar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background:rgba(0,0,0,.35);padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.08)}
+.shop-currencies{display:flex;gap:16px;font-weight:700;font-size:13px}
+.wood-actions{display:flex;gap:8px;align-items:center}
+.btn-sm{padding:5px 10px;font-size:12px}
+.modal-footer{display:flex;justify-content:flex-end;margin-top:6px}
+.realm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.realm-btn{background:var(--panel2);border:2px solid #3a4d63;border-radius:8px;padding:12px;color:var(--fg);text-align:left;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:4px;transition:all .15s}
+.realm-btn:hover{border-color:var(--purple);transform:translateY(-2px)}
+.realm-btn b{font-size:14px;color:#fff}
+.realm-btn small{color:var(--muted);font-size:11px}
+@media (prefers-reduced-motion:reduce){.toast,.bar i{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Helm Hollow</h1>
+    <div class="sub">Talk to Gimbal the merchant, fell trees for timber, travel across ancient realms, and wield 10 weapon styles.</div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" width="800" height="500" aria-label="Game view"></canvas>
+    
+    <div class="hud">
+      <div class="bars">
+        <div class="lv" id="lvl">Lv 1</div>
+        <div class="bar" id="hpb"><i></i></div>
+        <div class="bar" id="xpb"><i></i></div>
+      </div>
+      <div class="hudr">
+        <div id="reg">Meadow</div>
+        <div id="kills"></div>
+        <div id="gold"></div>
+      </div>
+    </div>
+
+    <!-- Realm Teleport Selection Modal -->
+    <div class="modal" id="portalModal" hidden>
+      <div class="modal-box">
+        <h3>✦ Ancient Realm Portal</h3>
+        <p style="margin:0;font-size:13px;color:var(--muted);">Step through the mystical leyline rift to travel to any discovered realm:</p>
+        <div class="realm-grid" id="realmList"></div>
+        <button class="btn" id="closePortalBtn" style="align-self:flex-end;">Cancel Travel</button>
+      </div>
+    </div>
+
+    <!-- In-Game Merchant Shop Modal right ON SCREEN -->
+    <div class="modal" id="shopModal" hidden>
+      <div class="modal-box shop-box">
+        <div class="shop-head">
+          <div class="merchant-tag">
+            <span class="merchant-avatar">🧔</span>
+            <div>
+              <h3 style="margin:0;color:var(--accent);font-family:var(--display);font-size:17px;">✦ Gimbal the Merchant's Outpost</h3>
+              <div class="merchant-quote">"Welcome traveler! Quality blades, recurve bows & guns. Bring timber logs for gold!"</div>
+            </div>
+          </div>
+          <button class="btn close-icon" id="closeShopXBtn" aria-label="Close Shop">✕</button>
+        </div>
+        <div class="shop-bar">
+          <div class="shop-currencies">
+            <span>🪙 Gold: <b id="shopGoldTxt" style="color:var(--accent)">0</b></span>
+            <span>🪵 Wood: <b id="shopWoodTxt" style="color:#6fbf73">0</b></span>
+          </div>
+          <div class="wood-actions">
+            <button class="btn btn-sm" id="sell1WoodBtn">Sell 1 Log (+15g)</button>
+            <button class="btn btn-sm" id="sellAllWoodBtn">Sell All Wood</button>
+          </div>
+        </div>
+        <div class="shopg" id="screenShopGrid"></div>
+        <div class="modal-footer">
+          <button class="btn" id="closeShopBtn">Close Shop [ESC / E]</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- In-Game Adventurer Bag & Equipment Modal right ON SCREEN -->
+    <div class="modal" id="bagModal" hidden>
+      <div class="modal-box bag-box">
+        <div class="shop-head">
+          <div class="merchant-tag">
+            <span class="merchant-avatar">🎒</span>
+            <div>
+              <h3 style="margin:0;color:var(--accent);font-family:var(--display);font-size:17px;">✦ Adventurer's Gear & Bag</h3>
+              <div class="merchant-quote">Click any weapon or armor to equip it instantly. Sell duplicate gear for coins.</div>
+            </div>
+          </div>
+          <button class="btn close-icon" id="closeBagXBtn" aria-label="Close Bag">✕</button>
+        </div>
+        <div class="shop-bar">
+          <div class="shop-currencies">
+            <span>🪙 Gold: <b id="bagGoldTxt" style="color:var(--accent)">0</b></span>
+            <span>🪵 Wood: <b id="bagWoodTxt" style="color:#6fbf73">0</b></span>
+          </div>
+          <button class="btn btn-sm" id="junk">Sell Weaker Junk</button>
+        </div>
+        <div class="bag-sec-head">Equipped Gear</div>
+        <div class="slots" id="slots"></div>
+        <div class="stats" id="stats"></div>
+        <div class="bag-sec-head" style="margin-top:6px;">Inventory Items (Click card to equip)</div>
+        <div class="inv" id="inv"></div>
+        <div class="modal-footer">
+          <button class="btn" id="closeBagBtn">Close Bag [ESC / B]</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+    <div class="pad l"><button id="bl" aria-label="Move left">&#9664;</button><button id="br" aria-label="Move right">&#9654;</button></div>
+    <div class="pad r"><button id="ba" class="sw" aria-label="Attack">ATTACK [SPACE]</button><button id="bj" aria-label="Jump">JUMP [W]</button></div>
+  </div>
+
+  <div class="bar-row">
+    <button class="btn" id="bagBtn" aria-expanded="false">Open Bag (B)</button>
+    <button class="btn" id="shopBtn" aria-expanded="false">Merchant Shop (E)</button>
+    <button class="btn" id="portalBtn">Realm Portal (T)</button>
+    <div class="help">Move: A/D or arrows · Jump: W or Up · Attack / Chop: SPACE BAR · Bag: B · Shop: E · Travel: T · Continuous Free World MMO</div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+var W=800,H=500,GY=400,GRAV=1700,MOVE=230,TAU=Math.PI*2;
+var RAR=["Common","Uncommon","Rare","Epic","Legendary"],RC=["#b8b2a6","#6fbf73","#5aa0e6","#b46be0","#f0b030"];
+var NAMES={
+  helmet:["Tin Pot","Iron Bucket","Horned Helm","Crested Visor","Dragon Greathelm"],
+  armor:["Patched Rags","Leather Vest","Chainmail","Plate Cuirass","Aegis Plate"],
+  weapon:["Novice Blade","Sturdy Weapon","Knight's Honor","Bloodforged","Celestial Cleaver"]
+};
+
+/* Weapon Definitions: distinct design, combat style, animation timings & projectile mechanics */
+var WT={
+  dagger:{name:"Rogue Knife",dmg:.65,reach:42,dur:.2,cd:.22,crit:.3,desc:"Rapid twin jabs",base:35,srar:1,w1:.1,hitK:.3,anim:"dagger",hand:"one"},
+  sword:{name:"Arming Sword",dmg:1.0,reach:62,dur:.32,cd:.36,crit:.14,desc:"Balanced horizontal slash",base:55,srar:1,w1:.25,hitK:.4,anim:"sword",hand:"one"},
+  greatsword:{name:"Dragon Claymore",dmg:1.85,reach:92,dur:.55,cd:.72,crit:.2,desc:"2-handed massive overhead cleave",base:170,srar:2,w1:.42,hitK:.6,anim:"greatsword",hand:"two"},
+  handaxe:{name:"Huntsman Hatchet",dmg:1.25,reach:54,dur:.34,cd:.42,crit:.22,desc:"1-handed fast downward chop",base:95,srar:1,w1:.28,hitK:.48,anim:"handaxe",hand:"one"},
+  battleaxe:{name:"Executioner Greataxe",dmg:2.1,reach:78,dur:.58,cd:.8,crit:.32,desc:"2-handed giant double-blade spin",base:210,srar:2,w1:.44,hitK:.65,anim:"battleaxe",hand:"two"},
+  spear:{name:"Knight Longspear",dmg:1.15,reach:105,dur:.32,cd:.44,crit:.15,desc:"Long piercing thrust lunge",base:110,srar:2,w1:.15,hitK:.35,anim:"spear",hand:"two",thrust:true},
+  hammer:{name:"Crag War Hammer",dmg:2.3,reach:62,dur:.62,cd:.88,crit:.12,desc:"2-handed heavy slam with shockwave",base:250,srar:3,w1:.5,hitK:.7,anim:"hammer",hand:"two"},
+  scythe:{name:"Reaper Scythe",dmg:1.35,reach:88,dur:.42,cd:.52,crit:.18,desc:"Wide sweeping harvest arc",base:240,srar:3,w1:.35,hitK:.5,anim:"scythe",hand:"two"},
+  bow:{name:"Elven Recurve Bow",dmg:1.2,reach:320,dur:.45,cd:.48,crit:.25,desc:"Ranged ballistic arrow projectile",base:140,srar:2,w1:.3,hitK:.35,anim:"bow",hand:"two",ranged:"arrow"},
+  gun:{name:"Flintlock Blunderbuss",dmg:2.0,reach:400,dur:.4,cd:.68,crit:.35,desc:"Ranged powder shot with muzzle burst",base:280,srar:3,w1:.22,hitK:.25,anim:"gun",hand:"one",ranged:"bullet"}
+};
+var WK=["dagger","sword","greatsword","handaxe","battleaxe","spear","hammer","scythe","bow","gun"];
+var PREF=["Rusty","Sturdy","Fine","Runed","Mythic"];
+
+var REGIONS=[
+  {name:"Sunny Meadow",sky:["#79c4ee","#dff3ff"],far:"#8cc58a",mid:"#3f8a4c",ground:"#6b4a33",top:"#5fae4f",plat:"#8a6a45",mobs:["slime","goblin","bat"],boss:"slime",bossName:"King Slime",amb:"leaf",rec:"Lv 1-3",treeKind:"oak",leafCol:"#5fae4f",oreCol:"#ffd24a"},
+  {name:"Bone Caves",sky:["#1d1830","#3b2f50"],far:"#2c2440",mid:"#4a3d63",ground:"#3a3346",top:"#6a5d80",plat:"#5a4f70",mobs:["skeleton","bat","goblin"],boss:"skeleton",bossName:"Bone Warden",amb:"dust",rec:"Lv 4-7",treeKind:"chasm",leafCol:"#a87ffb",oreCol:"#b46be0"},
+  {name:"Frostlands",sky:["#a9cfe6","#eef8ff"],far:"#c3dcec",mid:"#4f8a86",ground:"#7d97ad",top:"#f2f8fc",plat:"#9fb9cc",mobs:["yeti","wisp","skeleton"],boss:"yeti",bossName:"Frost Titan",amb:"snow",rec:"Lv 8-11",treeKind:"pine",leafCol:"#e2f1f8",oreCol:"#73d7ff"},
+  {name:"Volcanic Chasm",sky:["#2b0d0d","#571d1d"],far:"#421212",mid:"#752319",ground:"#261614",top:"#e65c00",plat:"#592823",mobs:["goblin","skeleton","wisp"],boss:"yeti",bossName:"Magma Wyrm",amb:"ember",rec:"Lv 12+",treeKind:"magma",leafCol:"#ff5722",oreCol:"#ff7b25"}
+];
+
+var MOB={
+  slime:{w:28,h:22,hp:22,dmg:6,spd:70,xp:6,gold:2,kind:"hop",col:"#59c46a"},
+  goblin:{w:22,h:30,hp:30,dmg:8,spd:90,xp:9,gold:3,kind:"walk",col:"#8aa63a"},
+  skeleton:{w:22,h:38,hp:38,dmg:10,spd:75,xp:12,gold:4,kind:"walk",col:"#e8e3d3"},
+  yeti:{w:36,h:44,hp:58,dmg:13,spd:70,xp:18,gold:6,kind:"walk",col:"#e3edf5"},
+  bat:{w:26,h:18,hp:20,dmg:7,spd:110,xp:10,gold:3,kind:"fly",col:"#6a4a8c"},
+  wisp:{w:20,h:20,hp:28,dmg:10,spd:95,xp:15,gold:5,kind:"fly",col:"#73d7ff"}
+};
+
+var keys={},touch={l:0,r:0,j:0,a:0},toastT=0,S,P,hudCache="";
+function rnd(a,b){return a+Math.random()*(b-a)}
+function ri(a,b){return Math.floor(rnd(a,b+1))}
+function pick(a){return a[ri(0,a.length-1)]}
+function approach(v,t,d){return v<t?Math.min(t,v+d):Math.max(t,v-d)}
+function hs(n){var s=Math.sin(n*127.1+311.7)*43758.5453;return s-Math.floor(s)}
+function ov(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+
+/* ---------- items ---------- */
+function mk(slot,rar,type){
+  var base=2+(S?S.tier:0)*3+Math.floor((P?P.lvl:1)/2);
+  var it={slot:slot,rar:rar,val:Math.max(1,Math.round(base*(1+rar*0.7)))};
+  if(slot==="weapon"){it.type=type||pick(WK);it.name=PREF[rar]+" "+WT[it.type].name}
+  else it.name=NAMES[slot][rar];
+  return it;
+}
+function rollRar(boss){var r=Math.random()+(boss?0.35:0);return r>0.985?4:r>0.93?3:r>0.8?2:r>0.5?1:0}
+function maxHp(){return 50+P.lvl*10+P.eq.helmet.val*3}
+function dmgOut(){
+  var main=P.eq.weapon;
+  var d=(5+P.lvl*2+main.val)*WT[main.type].dmg;
+  if(P.eq.offhand){
+    var off=P.eq.offhand;
+    d+=(3+P.lvl+off.val)*WT[off.type].dmg*0.75;
+  }
+  return Math.round(d);
+}
+function defense(){return Math.floor(P.eq.armor.val/2)}
+function price(it){return Math.round(it.val*(1+it.rar))}
+function need(){return 20+P.lvl*18}
+
+/* ---------- tree system ---------- */
+function mkTree(x,y,h){
+  var r=S.reg,maxHp=40+r*12;
+  return {
+    x:x,y:y,w:22,h:h,
+    hp:maxHp,maxHp:maxHp,
+    shake:0,fell:false,fallAngle:0,fallDir:1,logsDropped:false
+  };
+}
+
+function damageTree(t,dm,dir,isAxe,crit){
+  t.hp-=dm;t.shake=.35;t.fallDir=dir||1;
+  var hitY=t.y-t.h*rnd(.3,.65);
+  fx(t.x,hitY-10,(isAxe?"CHOP! ":"")+dm+(crit?"!":""),isAxe?"#ffd24a":"#eef2f6");
+  shake(isAxe?4:2);
+  burst(t.x,hitY,"#a36e3b",isAxe?12:6,180,"dot");
+  burst(t.x,t.y-t.h*.8,REGIONS[S.reg].leafCol||"#5fae4f",10,140,"spark");
+  if(t.hp<=0&&!t.fell){
+    t.fell=true;shake(6);
+    fx(t.x,t.y-t.h-14,"TIMBER! 🪵","#f2b134");
+    toast("Tree felled! Dropped timber logs.");
+  }
+}
+
+/* ---------- setup ---------- */
+function newGame(){
+  S={
+    tier:0,reg:0,t:0,shake:0,hs:0,cam:0,
+    en:[],solids:[],ones:[],pick:[],parts:[],fx:[],amb:[],proj:[],trees:[],
+    portal:null,arenaX:0,levelW:0,boss:null,bossSpawned:false,
+    npc:{x:180,y:0,w:36,h:46,talk:false,name:"Gimbal the Merchant"},
+    hubPortal:{x:330,y:0,w:44,h:64,near:false}
+  };
+  P={
+    x:80,y:0,w:22,h:36,vx:0,vy:0,ground:false,face:1,hp:60,lvl:1,xp:0,gold:60,wood:0,
+    coy:0,jbuf:0,abuf:0,jumps:0,at:0,atDur:.32,acd:0,hitDone:true,swId:0,invul:0,stun:0,run:0,
+    sx:1,sy:1,plume:0,dustT:0,safeX:80,safeY:354,
+    eq:{helmet:null,weapon:null,offhand:null,armor:null},inv:[]
+  };
+  S.p=P;
+  P.eq.helmet=mk("helmet",0);
+  P.eq.weapon=mk("weapon",0,"sword");
+  P.eq.offhand=null;
+  P.eq.armor=mk("armor",0);
+
+  // Starter Arsenal: multiple weapon classes, including 2 swords and 2 guns for instant dual wielding!
+  P.inv=[
+    mk("weapon",0,"sword"),      // 2nd Sword for instant Dual Swords!
+    mk("weapon",1,"gun"),        // 1st Flintlock Gun
+    mk("weapon",1,"gun"),        // 2nd Flintlock Gun for instant Dual Guns!
+    mk("weapon",0,"bow"),        // Elven Recurve Bow
+    mk("weapon",0,"dagger"),     // Rogue Knife
+    mk("weapon",0,"handaxe"),    // Huntsman Hatchet
+    mk("weapon",1,"battleaxe"),  // Executioner Greataxe
+    mk("weapon",0,"spear"),      // Knight Longspear
+    mk("weapon",1,"greatsword"), // Dragon Claymore
+    mk("weapon",1,"hammer")      // Crag War Hammer
+  ];
+  P.hp=maxHp();
+  enterRegion(0);
+}
+
+function getGroundY(x){
+  var topY=H;
+  for(var i=0;i<S.solids.length;i++){
+    var s=S.solids[i];
+    if(x>=s.x&&x<=s.x+s.w&&s.y<topY){
+      topY=s.y;
+    }
+  }
+  return topY<H?topY:GY;
+}
+
+function groundAt(x){
+  for(var i=0;i<S.solids.length;i++){
+    var s=S.solids[i];
+    if(x>=s.x&&x<=s.x+s.w)return true;
+  }
+  return false;
+}
+
+function enterRegion(i, fromSide){
+  S.reg=i%REGIONS.length;
+  S.en=[];S.pick=[];S.parts=[];S.fx=[];S.proj=[];S.trees=[];S.portal=null;S.boss=null;S.bossSpawned=false;
+  genLevel();
+
+  var spawnX = fromSide==="from_right" ? Math.max(90, S.levelW - 130) : 80;
+  var startY = getGroundY(spawnX);
+  P.x = spawnX;
+  P.y = startY - P.h;
+  P.vx = 0;
+  P.vy = 0;
+  P.safeX = spawnX;
+  P.safeY = startY - P.h;
+  P.invul = 1.2;
+  S.cam = fromSide==="from_right" ? Math.max(0, S.levelW - W) : 0;
+  S.npc.y = getGroundY(S.npc.x) - S.npc.h;
+  S.hubPortal.y = getGroundY(S.hubPortal.x) - S.hubPortal.h;
+  S.amb = [];
+  for(var k=0;k<45;k++)S.amb.push({x:rnd(0,W),y:rnd(0,H),s:rnd(1,3),ph:rnd(0,TAU)});
+  toast("Entering "+REGIONS[S.reg].name+" (Free World)");
+  updateAttackLabel();
+  refresh();
+}
+
+function genLevel(){
+  var R=REGIONS[S.reg];
+  S.solids=[];S.ones=[];S.trees=[];
+
+  // Starting village hub: peaceful meadow with Gimbal and Portal
+  var curX=0,hubW=490,hubY=390;
+  S.solids.push({x:0,y:hubY,w:hubW,h:H-hubY,kind:"hub"});
+  S.npc.x=190;S.npc.y=hubY-S.npc.h;
+  S.hubPortal.x=340;S.hubPortal.y=hubY-S.hubPortal.h;
+
+  // Plant starting grove of trees
+  S.trees.push(mkTree(95,hubY,ri(95,115)));
+  S.trees.push(mkTree(425,hubY,ri(90,110)));
+
+  curX=hubW;
+
+  // Terraced sections extending to the bottom of the screen with different elevations
+  var elevations=[340,290,360,315,260,375,305,250,355];
+  for(var i=0;i<elevations.length;i++){
+    var secW=ri(340,480);
+    var secY=elevations[i];
+
+    // Smooth transition step if elevation jump is steep
+    var prevSol=S.solids[S.solids.length-1];
+    var dy=secY-prevSol.y;
+    if(Math.abs(dy)>45){
+      var stepW=40,stepY=Math.round(prevSol.y+dy*.5);
+      S.solids.push({x:curX,y:stepY,w:stepW,h:H-stepY,kind:"step"});
+      curX+=stepW;
+    }
+
+    // Main solid plateau extending all the way down to H (500)
+    S.solids.push({x:curX,y:secY,w:secW,h:H-secY,kind:"plateau"});
+
+    // Plant 1-3 interactive trees on this elevated platform
+    var numTrees=ri(1,3);
+    for(var t=0;t<numTrees;t++){
+      var tx=curX+ri(40,secW-40);
+      S.trees.push(mkTree(tx,secY,ri(85,120)));
+    }
+
+    // Elevated one-way platforms at different heights with supporting pillars
+    var np=ri(1,2);
+    for(var k=0;k<np;k++){
+      var pw=ri(110,170);
+      var px=curX+ri(20,Math.max(21,secW-pw-20));
+      var py=secY-ri(65,110);
+      S.ones.push({x:px,y:py,w:pw,h:12,groundY:secY});
+      if(Math.random()<.45&&py>140){
+        S.ones.push({x:px+20,y:py-68,w:85,h:12,groundY:secY});
+      }
+    }
+
+    // Enemies patrolling this elevated section
+    var cnt=ri(2,3);
+    for(var e=0;e<cnt;e++){
+      var type=pick(R.mobs),m=MOB[type],ex=curX+rnd(50,secW-60);
+      if(m.kind==="fly")S.en.push(mkEnemy(type,ex,rnd(secY-140,secY-60),curX+10,curX+secW-10,false));
+      else S.en.push(mkEnemy(type,ex,secY-m.h,curX+6,curX+secW-6,false));
+    }
+
+    // Roaming Champion Mini-Boss on one of the deep mid-tier plateaus (does NOT lock arena)
+    if(i===4){
+      var bossType=R.boss,bm=MOB[bossType];
+      S.en.push(mkEnemy(bossType,curX+secW*.5,secY-bm.h*2.2,curX+15,curX+secW-15,true));
+    }
+
+    curX+=secW;
+  }
+
+  // Eastern Outpost: connects seamlessly to the next realm through the eastern gateway!
+  var eastY=380,eastW=460;
+  S.solids.push({x:curX,y:eastY,w:eastW,h:H-eastY,kind:"outpost"});
+  S.trees.push(mkTree(curX+80,eastY,110));
+  S.trees.push(mkTree(curX+260,eastY,120));
+  curX+=eastW;
+  S.levelW=curX;
+}
+
+function mkEnemy(type,x,y,minX,maxX,boss){
+  var m=MOB[type],sc=1+S.tier*0.6+S.reg*0.4,s=boss?2.4:1,hp=m.hp*sc*(boss?9:1);
+  return {type:type,x:x,y:y,w:m.w*s,h:m.h*s,s:s,vx:0,vy:0,ground:false,dir:Math.random()<.5?-1:1,hp:hp,max:hp,dmg:Math.round(m.dmg*sc*(boss?1.5:1)),
+    minX:minX,maxX:maxX,flash:0,ph:rnd(0,TAU),t:0,boss:boss,baseY:y,jt:rnd(1,2.5),kind:boss?"walk":m.kind,stun:0,sq:0,pvy:0,slam:false,hurtCd:0};
+}
+
+function toast(msg){var t=document.getElementById("toast");t.textContent=msg;t.className="toast on";toastT=2.4}
+
+function updateAttackLabel(){
+  var wt=P&&P.eq&&P.eq.weapon?P.eq.weapon.type:"sword";
+  var off=P&&P.eq&&P.eq.offhand?P.eq.offhand.type:null;
+  var ba=document.getElementById("ba");
+  if(ba){
+    if(wt==="gun"&&off==="gun")ba.textContent="DUAL FIRE";
+    else if(wt==="gun"||off==="gun")ba.textContent="FIRE";
+    else if(wt==="bow")ba.textContent="SHOOT";
+    else if(off)ba.textContent="DUAL STRIKE";
+    else if(wt==="spear"||wt==="dagger")ba.textContent="THRUST";
+    else if(wt==="hammer")ba.textContent="SMASH";
+    else ba.textContent="SWING";
+  }
+}
+
+/* ---------- effects & combat ---------- */
+function part(x,y,vx,vy,l,c,sz,type,g){S.parts.push({x:x,y:y,vx:vx,vy:vy,l:l,max:l,c:c,sz:sz,type:type||"dot",g:g===undefined?600:g});if(S.parts.length>500)S.parts.shift()}
+function burst(x,y,c,n,spd,type){for(var i=0;i<n;i++){var a=rnd(0,TAU),s=rnd(spd*.3,spd);part(x,y,Math.cos(a)*s,Math.sin(a)*s-spd*.3,rnd(.3,.7),c,rnd(2,5),type||"dot")}}
+function dust(x,y,n,dir){for(var i=0;i<n;i++)part(x+rnd(-6,6),y-2,(dir||rnd(-1,1))*rnd(20,70)+rnd(-20,20),rnd(-60,-10),rnd(.25,.5),"rgba(230,230,230,.7)",rnd(3,6),"dot",-40)}
+function ring(x,y,c,r){S.parts.push({x:x,y:y,vx:0,vy:0,l:.35,max:.35,c:c,sz:r,type:"ring",g:0})}
+function fx(x,y,t,c){S.fx.push({x:x,y:y,t:t,c:c||"#fff",l:1})}
+function shake(v){S.shake=Math.max(S.shake,v)}
+
+function addXp(n){
+  P.xp+=n;
+  while(P.xp>=need()){P.xp-=need();P.lvl++;P.hp=maxHp();fx(P.x+11,P.y-20,"LEVEL UP!","#f2b134");burst(P.x+11,P.y+18,"#f2b134",30,260,"spark");ring(P.x+11,P.y+34,"#f2b134",60);toast("Level "+P.lvl+"! HP restored")}
+}
+
+function hurtPlayer(dm,fx0){
+  if(P.invul>0)return;
+  dm=Math.max(1,dm-defense());P.hp-=dm;P.invul=1;P.stun=.25;
+  P.vx=(P.x+P.w/2<fx0?-1:1)*260;P.vy=-320;P.ground=false;P.sx=.8;P.sy=1.2;
+  fx(P.x+11,P.y-6,"-"+dm,"#ff7b5c");shake(7);S.hs=.07;burst(P.x+11,P.y+14,"#e4572e",12,220);
+}
+
+function damageEnemy(e,dm,dir,crit){
+  e.hp-=dm;e.flash=.12;e.stun=e.boss?.05:.3;e.vx=dir*(e.boss?70:300);if(e.ground&&!e.boss)e.vy=-170;e.sq=1;
+  fx(e.x+e.w/2,e.y-6,String(dm)+(crit?"!":""),crit?"#ffd24a":"#fff");
+  burst(e.x+e.w/2,e.y+e.h/2,crit?"#ffd24a":"#fff",crit?14:8,260,"spark");
+  S.hs=Math.max(S.hs,crit?.09:.05);shake(crit?5:3);
+}
+
+function spawnProjectile(type,handIdx){
+  var w=WT[type],face=P.face;
+  var offY=(handIdx===1?-9:-4);
+  var offX=16+(handIdx===1?6:0);
+  var sx=P.x+P.w/2+face*offX,sy=P.y+P.h/2+offY;
+  var crit=Math.random()<w.crit,dm=Math.round((dmgOut()*(handIdx===1?.8:1.0))*rnd(.88,1.15)*(crit?2:1));
+  
+  if(type==="bow"){
+    S.proj.push({
+      type:"arrow",x:sx,y:sy,vx:face*580,vy:-75,g:220,dmg:dm,crit:crit,face:face,l:1.6,w:24,h:6
+    });
+    burst(sx,sy,"#e5d5b5",5,90,"spark");
+  } else if(type==="gun"){
+    S.proj.push({
+      type:"bullet",x:sx+face*8,y:sy,vx:face*920,vy:rnd(-15,15),g:0,dmg:dm,crit:crit,face:face,l:1.0,w:14,h:5
+    });
+    // Muzzle blast
+    shake(handIdx===1?2:4);
+    burst(sx+face*10,sy,"#ffd24a",handIdx===1?10:14,240,"spark");
+    dust(sx+face*12,sy,3,face);
+    ring(sx+face*8,sy,"rgba(255,230,120,.8)",handIdx===1?24:35);
+    P.vx-=face*(handIdx===1?45:80); // Recoil push
+  }
+}
+
+function doHit(){
+  var wt=P.eq.weapon.type,w=WT[wt];
+  var off=P.eq.offhand;
+
+  if(w.ranged||(off&&WT[off.type].ranged)){
+    if(w.ranged){
+      spawnProjectile(wt,0);
+    }
+    if(off&&WT[off.type].ranged){
+      // Dual guns or offhand gun: rapid secondary blast!
+      setTimeout(function(){
+        if(P)spawnProjectile(off.type,1);
+      },75);
+    }
+    if(w.ranged&&(!off||!WT[off.type].ranged||off.type==="gun"))return;
+  }
+
+  var back=wt==="scythe"?48:wt==="battleaxe"?24:0,any=false;
+  var reach=w.reach+(off?10:0);
+  var hb={x:P.face>0?P.x+P.w-4-back:P.x-(reach-4),y:P.y-12,w:reach+back,h:P.h+20};
+  var tipx=P.x+P.w/2+P.face*reach*.8;
+
+  // Hit enemies
+  S.en.forEach(function(e){
+    if(ov(hb,e)){
+      var crit=Math.random()<w.crit,dm=Math.round(dmgOut()*rnd(.85,1.15)*(crit?2:1));
+      var dir=e.x+e.w/2<P.x+P.w/2?-1:1;
+      damageEnemy(e,dm,dir,crit);any=true;
+      if(wt==="hammer"){e.stun=e.boss?.4:.85;e.vx*=1.6}
+      if(wt==="greatsword"){e.vx*=1.3}
+    }
+  });
+
+  // Hit interactive trees with chopping mechanics
+  var isAxe=(wt==="handaxe"||wt==="battleaxe"||(off&&(off.type==="handaxe"||off.type==="battleaxe")));
+  S.trees.forEach(function(t){
+    if(!t.fell){
+      var thb={x:t.x-16,y:t.y-t.h,w:32,h:t.h};
+      if(ov(hb,thb)){
+        any=true;
+        var crit=Math.random()<w.crit;
+        var dm=Math.round(dmgOut()*rnd(.9,1.2)*(isAxe?3.0:1.0)*(crit?1.8:1));
+        damageTree(t,dm,P.face,isAxe,crit);
+      }
+    }
+  });
+
+  if(off&&!WT[off.type].ranged){
+    // Dual wield secondary slash burst!
+    burst(tipx+P.face*10,P.y+14,RC[off.rar],10,200,"spark");
+    ring(tipx+P.face*8,P.y+14,RC[off.rar],30);
+  }
+
+  if(wt==="hammer"){ring(tipx,P.y+P.h,"rgba(255,255,255,.8)",75);dust(tipx,P.y+P.h,9);shake(any?8:5)}
+  if(wt==="battleaxe"){shake(any?6:3);burst(tipx,P.y+16,"#e08b34",8,200,"spark")}
+  if(!any&&!w.ranged)part(tipx,P.y+12,0,0,.12,"rgba(255,255,255,.4)",10,"dot",0);
+}
+
+function killEnemy(e){
+  var m=MOB[e.type],cx=e.x+e.w/2,cy=e.y+e.h/2;
+  burst(cx,cy,m.col,e.boss?60:16,e.boss?420:280);ring(cx,cy,m.col,e.boss?120:36);
+  addXp(Math.round(m.xp*(e.boss?8:1)*(1+S.tier*.4)));
+  var coins=e.boss?10:ri(2,4);
+  for(var k=0;k<coins;k++)S.pick.push({kind:"coin",x:cx,y:cy,w:14,h:14,vx:rnd(-160,160),vy:rnd(-420,-200),phys:true,age:0,ph:rnd(0,TAU),val:Math.max(1,Math.round(m.gold*(e.boss?3:1)/coins*1.5))});
+  var n=e.boss?3:(Math.random()<.45?1:0);
+  for(var j=0;j<n;j++){
+    var it=mk(pick(["helmet","weapon","armor"]),rollRar(e.boss));
+    S.pick.push({kind:"item",it:it,x:cx,y:cy-10,w:16,h:16,vx:rnd(-120,120),vy:rnd(-460,-300),phys:true,age:0,ph:rnd(0,TAU)});
+  }
+  if(e.boss){
+    S.hs=.2;shake(12);
+    toast("Champion "+REGIONS[S.reg].bossName+" defeated! +"+Math.round(m.xp*8)+" XP!");
+  }else{
+    S.hs=Math.max(S.hs,.07);shake(4);
+  }
+}
+
+/* ---------- physics & updates ---------- */
+function moveBody(o,dt){
+  var i,s;
+  o.x+=o.vx*dt;
+  for(i=0;i<S.solids.length;i++){s=S.solids[i];if(ov(o,s)){if(o.vx>0)o.x=s.x-o.w;else if(o.vx<0)o.x=s.x+s.w;o.vx=0}}
+  var pb=o.y+o.h;o.y+=o.vy*dt;o.ground=false;
+  for(i=0;i<S.solids.length;i++){s=S.solids[i];if(ov(o,s)){if(o.vy>=0){o.y=s.y-o.h;o.ground=true}else o.y=s.y+s.h;o.vy=0}}
+  if(o.vy>=0)for(i=0;i<S.ones.length;i++){s=S.ones[i];if(o.x<s.x+s.w&&o.x+o.w>s.x&&pb<=s.y+2&&o.y+o.h>=s.y){o.y=s.y-o.h;o.vy=0;o.ground=true}}
+}
+
+function respawn(lose){
+  if(lose){var l=Math.floor(P.gold/2);P.gold-=l;P.hp=maxHp();toast("You fell! Lost "+l+" gold.")}
+  P.x=P.safeX;P.y=P.safeY;P.vx=0;P.vy=0;P.invul=1.5;P.stun=0;
+}
+
+function update(rdt){
+  var dt=rdt,p=P;
+  S.t+=rdt;
+  if(S.hs>0){S.hs-=rdt;dt=0}
+  S.shake=Math.max(0,S.shake-rdt*30);
+  if(toastT>0){toastT-=rdt;if(toastT<=0)document.getElementById("toast").className="toast"}
+
+  var jh=!!(keys.w||keys.ArrowUp||keys.k||keys.c||touch.j),L=keys.a||keys.ArrowLeft||touch.l,Rr=keys.d||keys.ArrowRight||touch.r;
+  if(dt>0){
+    /* player movement */
+    var inx=(L?-1:0)+(Rr?1:0);
+    p.invul=Math.max(0,p.invul-dt);p.stun=Math.max(0,p.stun-dt);p.acd=Math.max(0,p.acd-dt);p.coy-=dt;p.jbuf-=dt;p.abuf-=dt;
+    if(p.stun<=0){
+      var tgt=inx*MOVE*(p.at>0?.7:1);
+      p.vx=inx?approach(p.vx,tgt,(p.ground?2400:1500)*dt):approach(p.vx,0,(p.ground?2600:500)*dt);
+      if(inx&&p.at<=0)p.face=inx;
+    }
+    var wasG=p.ground,pv=p.vy;
+    var g=GRAV*((!jh&&p.vy<-200)?2.4:1);
+    p.vy=Math.min(p.vy+g*dt,820);
+    if(wasG){p.coy=.1;p.jumps=0}
+    if(p.jbuf>0&&p.stun<=0){
+      if(p.coy>0){p.vy=-610;p.jumps=1;p.coy=0;p.jbuf=0;p.sx=.7;p.sy=1.35;dust(p.x+11,p.y+p.h,6)}
+      else if(p.jumps<2){p.vy=-520;p.jumps=2;p.jbuf=0;p.sx=.75;p.sy=1.3;ring(p.x+11,p.y+p.h,"rgba(255,255,255,.8)",26);burst(p.x+11,p.y+p.h,"rgba(255,255,255,.8)",6,120)}
+    }
+
+    /* attack trigger */
+    if(p.abuf>0&&p.acd<=0&&p.stun<=0){
+      var wq=WT[p.eq.weapon.type];
+      p.at=wq.dur;p.atDur=wq.dur;p.acd=wq.cd;p.hitDone=false;p.abuf=0;
+      if(!wq.ranged){
+        p.vx+=p.face*(wq.thrust?100:wq.anim==="greatsword"?80:130);
+      }
+    }
+    if(p.at>0){
+      p.at-=dt;
+      if(!p.hitDone&&p.at<=p.atDur*(1-WT[p.eq.weapon.type].hitK)){
+        p.hitDone=true;
+        doHit();
+      }
+    }
+
+    moveBody(p,dt);
+
+    /* Free World Zone Transitions: walk left or right into neighboring realms */
+    if(p.x<15){
+      var prevReg=(S.reg-1+REGIONS.length)%REGIONS.length;
+      enterRegion(prevReg,"from_right");
+      return;
+    }
+    if(p.x+p.w>S.levelW-15){
+      var nextReg=(S.reg+1)%REGIONS.length;
+      enterRegion(nextReg,"from_left");
+      return;
+    }
+
+    if(!wasG&&p.ground&&pv>240){var k=Math.min(1,pv/800);p.sx=1+.35*k;p.sy=1-.35*k;dust(p.x+11,p.y+p.h,Math.round(4+k*8));if(pv>600)shake(3)}
+    p.sx+=(1-p.sx)*Math.min(1,dt*14);p.sy+=(1-p.sy)*Math.min(1,dt*14);
+    p.run+=Math.abs(p.vx)*dt*.055;
+    if(p.ground&&Math.abs(p.vx)>120){p.dustT-=dt;if(p.dustT<=0){p.dustT=.13;dust(p.x+11-p.face*6,p.y+p.h,1,-p.face*.6)}}
+    var pt=-p.vx*p.face*.05;pt=Math.max(-14,Math.min(6,pt))+(p.ground?0:Math.max(-6,Math.min(6,-p.vy*.012)));
+    p.plume+=(pt-p.plume)*Math.min(1,dt*9);
+    if(p.ground&&groundAt(p.x-20)&&groundAt(p.x+p.w+20)){p.safeX=p.x;p.safeY=p.y}
+    if(p.y>H+90){var d=Math.round(maxHp()*.12);p.hp=Math.max(1,p.hp-d);fx(p.safeX+11,p.safeY-10,"-"+d,"#ff7b5c");respawn(false);shake(6)}
+
+    /* In-game NPC detection */
+    var dNpc=Math.hypot(p.x+p.w/2-(S.npc.x+S.npc.w/2),p.y+p.h/2-(S.npc.y+S.npc.h/2));
+    S.npc.near=dNpc<72;
+
+    /* In-game Hub Portal detection */
+    var dPortal=Math.hypot(p.x+p.w/2-(S.hubPortal.x+S.hubPortal.w/2),p.y+p.h/2-(S.hubPortal.y+S.hubPortal.h/2));
+    S.hubPortal.near=dPortal<70;
+
+    /* Tree animation & felling physics */
+    S.trees.forEach(function(tr){
+      if(tr.shake>0)tr.shake-=dt;
+      if(tr.fell&&tr.fallAngle<Math.PI/2){
+        tr.fallAngle=Math.min(Math.PI/2,tr.fallAngle+dt*3.8);
+        if(tr.fallAngle>=Math.PI/2&&!tr.logsDropped){
+          tr.logsDropped=true;
+          shake(5);
+          dust(tr.x+tr.fallDir*(tr.h*.6),tr.y,10);
+          burst(tr.x+tr.fallDir*(tr.h*.7),tr.y-10,REGIONS[S.reg].leafCol||"#5fae4f",16,220,"spark");
+          var logCount=ri(2,4);
+          for(var l=0;l<logCount;l++){
+            S.pick.push({
+              kind:"log",x:tr.x+tr.fallDir*rnd(15,tr.h*.75),y:tr.y-14,w:18,h:12,
+              vx:tr.fallDir*rnd(50,160)+rnd(-30,30),vy:rnd(-380,-220),phys:true,age:0,ph:rnd(0,TAU)
+            });
+          }
+        }
+      }
+    });
+
+    /* Projectile Physics & Collisions */
+    for(var pi=S.proj.length-1;pi>=0;pi--){
+      var pj=S.proj[pi];
+      pj.l-=dt;
+      pj.x+=pj.vx*dt;
+      pj.y+=pj.vy*dt;
+      pj.vy+=pj.g*dt;
+
+      if(pj.type==="arrow"&&Math.random()<dt*30){
+        part(pj.x,pj.y,0,0,.2,"rgba(220,210,180,.6)",2,"dot",0);
+      } else if(pj.type==="bullet"&&Math.random()<dt*40){
+        part(pj.x,pj.y,0,0,.15,"#ffd24a",2,"spark",0);
+      }
+
+      var hit=false;
+      // Hit enemies
+      for(var ei=0;ei<S.en.length;ei++){
+        var tgt=S.en[ei];
+        if(pj.x>tgt.x&&pj.x<tgt.x+tgt.w&&pj.y>tgt.y&&pj.y<tgt.y+tgt.h){
+          damageEnemy(tgt,pj.dmg,pj.face,pj.crit);
+          hit=true;
+          if(pj.type==="bullet"){
+            shake(3);
+            burst(pj.x,pj.y,"#ffd24a",8,180,"spark");
+          }
+          break;
+        }
+      }
+
+      // Hit trees with projectiles
+      if(!hit){
+        for(var ti=0;ti<S.trees.length;ti++){
+          var trk=S.trees[ti];
+          if(!trk.fell&&pj.x>trk.x-16&&pj.x<trk.x+16&&pj.y>trk.y-trk.h&&pj.y<trk.y){
+            damageTree(trk,pj.dmg,pj.face,false,pj.crit);
+            hit=true;
+            if(pj.type==="bullet"){
+              shake(2);
+              burst(pj.x,pj.y,"#ffd24a",6,160,"spark");
+            }
+            break;
+          }
+        }
+      }
+
+      var gy=getGroundY(pj.x);
+      if(hit||pj.l<=0||pj.y>=gy){
+        if(pj.y>=gy&&!hit){
+          dust(pj.x,gy,2);
+        }
+        S.proj.splice(pi,1);
+      }
+    }
+
+    /* Continuous Monster Respawns across the plateaus (Helmet Heroes style) */
+    S.spawnTimer=(S.spawnTimer||0)+dt;
+    if(S.en.length<10&&S.spawnTimer>2.5){
+      S.spawnTimer=0;
+      var candidates=S.solids.filter(function(s){
+        return (s.kind==="plateau"||s.kind==="hub"||s.kind==="outpost")&&(s.x>S.cam+W+30||s.x+s.w<S.cam-30);
+      });
+      if(candidates.length>0){
+        var sec=pick(candidates);
+        var type=pick(REGIONS[S.reg].mobs);
+        var m=MOB[type];
+        var ex=rnd(sec.x+30,sec.x+sec.w-30);
+        var isChamp=Math.random()<0.12&&!S.en.some(function(e){return e.boss});
+        if(m.kind==="fly"){
+          S.en.push(mkEnemy(type,ex,rnd(sec.y-140,sec.y-60),sec.x+10,sec.x+sec.w-10,isChamp));
+        } else {
+          S.en.push(mkEnemy(type,ex,sec.y-m.h*(isChamp?2.2:1),sec.x+10,sec.x+sec.w-10,isChamp));
+        }
+        burst(ex,sec.y-20,"#73d7ff",6,80,"spark");
+      }
+    }
+
+    /* Tree Regrowth */
+    S.trees.forEach(function(t){
+      if(t.fell&&!t.regrowTimer){
+        t.regrowTimer=25;
+      } else if(t.regrowTimer>0){
+        t.regrowTimer-=dt;
+        if(t.regrowTimer<=0){
+          t.fell=false;
+          t.fallAngle=0;
+          t.hp=t.maxHp;
+          t.shake=0;
+          t.regrowTimer=0;
+          burst(t.x,t.y-20,"#6fbf73",14,120,"spark");
+          fx(t.x,t.y-30,"Tree Regrown 🌱","#6fbf73");
+        }
+      }
+    });
+
+    /* enemies */
+    S.en.forEach(function(e){updateEnemy(e,dt)});
+    for(var i=S.en.length-1;i>=0;i--)if(S.en[i].hp<=0){killEnemy(S.en[i]);S.en.splice(i,1)}
+    if(p.hp<=0){respawn(true)}
+
+    /* pickups */
+    for(i=S.pick.length-1;i>=0;i--){
+      var o=S.pick[i];o.age+=dt;
+      var dx=p.x+p.w/2-(o.x+7),dy=p.y+p.h/2-(o.y+7),d2=Math.hypot(dx,dy);
+      if((o.kind==="coin"||o.kind==="log")&&o.age>.4&&d2<90){o.phys=false;o.x+=dx/d2*420*dt;o.y+=dy/d2*420*dt}
+      else if(o.phys){var opv=o.vy;o.vy=Math.min(o.vy+GRAV*dt,800);moveBody(o,dt);if(o.ground){if(opv>170){o.vy=-opv*.4;o.ground=false}o.vx*=.85}}
+      if(d2<26&&o.age>.3){
+        if(o.kind==="coin"){
+          p.gold+=o.val||1+S.tier;burst(o.x+7,o.y+7,"#ffd24a",5,120,"spark");S.pick.splice(i,1);
+        } else if(o.kind==="log"){
+          p.wood=(p.wood||0)+1;
+          burst(o.x+9,o.y+6,"#c8965a",8,160,"spark");
+          ring(o.x+9,o.y+6,"#6fbf73",26);
+          fx(o.x+9,o.y-12,"+1 Log 🪵","#a8e6cf");
+          toast("Collected Wood Log (Total: "+p.wood+")");
+          S.pick.splice(i,1);refresh();
+        } else if(p.inv.length<24){
+          p.inv.push(o.it);toast("Found "+RAR[o.it.rar]+" "+o.it.name);ring(o.x+8,o.y+8,RC[o.it.rar],30);S.pick.splice(i,1);renderBag();
+        } else {
+          p.gold+=price(o.it);toast("Bag full: sold "+o.it.name);S.pick.splice(i,1);
+        }
+      }
+    }
+
+    /* end-of-level portal */
+    if(S.portal){
+      S.portal.t+=dt;
+      if(p.x+p.w>S.portal.x-22&&p.x<S.portal.x+22&&p.y+p.h>S.portal.y-60){
+        openPortalModal();
+      }else if(Math.random()<dt*30)part(S.portal.x+rnd(-20,20),S.portal.y-rnd(0,60),0,-rnd(30,80),.7,"#c9b6ff",3,"dot",0);
+    }
+
+    /* camera */
+    var cx=p.x+p.w/2+p.face*70-W/2;cx=Math.max(0,Math.min(S.levelW-W,cx));
+    S.cam+=(cx-S.cam)*Math.min(1,dt*5);
+  }
+
+  var pd=dt>0?dt:rdt*.15;
+  S.parts.forEach(function(q){q.l-=pd;q.vy+=q.g*pd;q.x+=q.vx*pd;q.y+=q.vy*pd});
+  S.parts=S.parts.filter(function(q){return q.l>0});
+  S.fx.forEach(function(f){f.y-=36*rdt;f.l-=rdt*.9});S.fx=S.fx.filter(function(f){return f.l>0});
+  S.amb.forEach(function(a){
+    a.ph+=rdt;var am=REGIONS[S.reg].amb;
+    if(am==="snow"){a.y+=(30+a.s*14)*rdt;a.x+=Math.sin(a.ph)*20*rdt-20*rdt}
+    else if(am==="leaf"){a.y+=(20+a.s*8)*rdt;a.x+=(40+Math.sin(a.ph*2)*30)*rdt}
+    else if(am==="ember"){a.y-=(40+a.s*12)*rdt;a.x+=Math.sin(a.ph*3)*25*rdt}
+    else{a.y-=(8+a.s*5)*rdt;a.x+=Math.sin(a.ph)*14*rdt}
+    if(a.y>H+4)a.y=-4;if(a.y<-4)a.y=H+4;if(a.x>W+4)a.x=-4;if(a.x<-4)a.x=W+4
+  });
+  hud();
+}
+
+function updateEnemy(e,dt){
+  var p=P,m=MOB[e.type];
+  e.t+=dt;e.flash=Math.max(0,e.flash-dt);e.stun=Math.max(0,e.stun-dt);e.hurtCd=Math.max(0,e.hurtCd-dt);e.sq=Math.max(0,e.sq-dt*4);
+  var dx=p.x+p.w/2-(e.x+e.w/2),dy=p.y+p.h/2-(e.y+e.h/2),ad=Math.abs(dx);
+  if(e.kind==="fly"){
+    if(e.stun>0){e.vx*=Math.pow(.02,dt);e.vy*=Math.pow(.02,dt)}
+    else{
+      var near=ad<280&&Math.abs(dy)<260;
+      var tx=near?p.x+p.w/2:(e.minX+e.maxX)/2+Math.sin(e.t*.8+e.ph)*(e.maxX-e.minX)/2.2;
+      var ty=near?p.y+p.h/2-34+Math.sin(e.t*5+e.ph)*22:e.baseY+Math.sin(e.t*2+e.ph)*20;
+      var spd=near?m.spd*1.25:m.spd*.6,vx=tx-(e.x+e.w/2),vy=ty-(e.y+e.h/2),l=Math.hypot(vx,vy)||1;
+      e.vx=approach(e.vx,vx/l*spd,500*dt);e.vy=approach(e.vy,vy/l*spd,500*dt);
+      if(Math.abs(vx)>8)e.dir=vx>0?1:-1;
+    }
+    e.x+=e.vx*dt;e.y+=e.vy*dt;
+    if(e.type==="wisp"&&Math.random()<dt*20)part(e.x+e.w/2,e.y+e.h/2,rnd(-10,10),rnd(10,40),.5,"rgba(115,215,255,.7)",rnd(2,4),"dot",0);
+  }else{
+    var was=e.ground;e.pvy=e.vy;
+    if(e.stun>0){e.vx*=Math.pow(.01,dt)}
+    else{
+      var chase=ad<240&&Math.abs(dy)<110+e.h;
+      if(e.boss)chase=true;
+      if(chase)e.dir=dx>0?1:-1;else if(e.x<=e.minX)e.dir=1;else if(e.x+e.w>=e.maxX)e.dir=-1;
+      var sp=m.spd*(chase?1.3:.6)*(e.boss?.85:1);
+      if(m.kind==="hop"&&!e.boss){
+        if(e.ground){e.vx*=Math.pow(.01,dt);e.jt-=dt;if(e.jt<=0){e.vy=-390;e.vx=e.dir*(chase?170:90);e.jt=rnd(.8,1.6);e.sq=1}}
+      }else{
+        if(e.ground||e.boss)e.vx=approach(e.vx,e.dir*sp,1600*dt);
+        if(e.boss){e.jt-=dt;if(e.ground&&e.jt<=0){e.vy=-640;e.vx=e.dir*260;e.jt=rnd(2.2,3.4);e.slam=true;e.sq=1}}
+      }
+    }
+    e.vy=Math.min(e.vy+GRAV*dt,820);
+    moveBody(e,dt);
+    if(e.x<e.minX){e.x=e.minX;e.vx=0}
+    if(e.x+e.w>e.maxX){e.x=e.maxX-e.w;e.vx=0}
+    if(!was&&e.ground&&e.pvy>260){
+      e.sq=1;dust(e.x+e.w/2,e.y+e.h,e.boss?10:3);
+      if(e.slam){
+        e.slam=false;shake(11);ring(e.x+e.w/2,e.y+e.h,"rgba(255,255,255,.8)",150);burst(e.x+e.w/2,e.y+e.h,"#ddd",18,300);
+        if(p.ground&&Math.abs(dx)<190)hurtPlayer(Math.round(e.dmg*.8),e.x+e.w/2);
+      }
+    }
+  }
+  if(e.hurtCd<=0&&e.stun<=.05&&ov(p,e)){
+    if(p.vy>150&&p.y+p.h-e.y<e.h*.55){
+      damageEnemy(e,Math.round(dmgOut()*.8),p.x+p.w/2<e.x+e.w/2?1:-1,false);
+      p.vy=-450;p.jumps=1;p.sx=.8;p.sy=1.25;e.hurtCd=.35;ring(e.x+e.w/2,e.y,"#fff",34);
+    }else if(p.invul<=0){hurtPlayer(e.dmg,e.x+e.w/2);e.hurtCd=.5}
+  }
+}
+
+/* ---------- drawing world & environments ---------- */
+function drawBg(){
+  var R=REGIONS[S.reg],cx=S.cam,g=ctx.createLinearGradient(0,0,0,H),i,x,y;
+  g.addColorStop(0,R.sky[0]);g.addColorStop(1,R.sky[1]);ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  if(S.reg===0){
+    var sg=ctx.createRadialGradient(650,90,10,650,90,120);sg.addColorStop(0,"rgba(255,246,194,.9)");sg.addColorStop(1,"rgba(255,246,194,0)");ctx.fillStyle=sg;ctx.fillRect(500,0,300,240);ctx.fillStyle="#fff6c2";ctx.beginPath();ctx.arc(650,90,32,0,TAU);ctx.fill();
+    ctx.fillStyle="rgba(255,255,255,.8)";for(i=0;i<4;i++){var cxp=((i*260-cx*.08+S.t*6)%1100+1100)%1100-150,cyp=60+i*30;ctx.beginPath();ctx.arc(cxp,cyp,22,0,TAU);ctx.arc(cxp+26,cyp+4,28,0,TAU);ctx.arc(cxp+54,cyp,20,0,TAU);ctx.fill()}
+  } else if(S.reg===3){
+    // Volcanic glow
+    var vg=ctx.createLinearGradient(0,GY-120,0,GY);
+    vg.addColorStop(0,"rgba(255,90,0,0)");vg.addColorStop(1,"rgba(255,60,0,.35)");
+    ctx.fillStyle=vg;ctx.fillRect(0,GY-120,W,120);
+  }
+  ctx.fillStyle=R.far;ctx.beginPath();ctx.moveTo(0,H);
+  for(x=0;x<=W+20;x+=20){var wx=x+cx*.2;y=S.reg===2?300-Math.abs(Math.sin(wx*.004))*120-Math.sin(wx*.013)*18:300+Math.sin(wx*.006)*40+Math.sin(wx*.017)*16;ctx.lineTo(x,y)}
+  ctx.lineTo(W+20,H);ctx.fill();
+  var sp=110,off=cx*.5,i0=Math.floor(off/sp)-1;
+  for(i=i0;i<i0+Math.ceil(W/sp)+3;i++){
+    var h=hs(i+S.reg*50),bx=i*sp-off+h*40,sway=Math.sin(S.t*1.2+i)*1.5;
+    ctx.fillStyle=R.mid;
+    if(S.reg===0){ctx.fillRect(bx-4,GY-40-h*30,8,50+h*30);ctx.beginPath();ctx.arc(bx+sway,GY-50-h*30,24+h*10,0,TAU);ctx.arc(bx-16+sway,GY-36-h*30,16,0,TAU);ctx.arc(bx+16+sway,GY-36-h*30,16,0,TAU);ctx.fill()}
+    else if(S.reg===1){var len=40+h*120;ctx.beginPath();ctx.moveTo(bx-16,0);ctx.lineTo(bx+16,0);ctx.lineTo(bx,len);ctx.fill()}
+    else if(S.reg===3){ctx.fillStyle="#451814";ctx.beginPath();ctx.moveTo(bx-20,GY);ctx.lineTo(bx,GY-50-h*40);ctx.lineTo(bx+20,GY);ctx.fill()}
+    else{var ph=60+h*50;for(var k=0;k<3;k++){var yy=GY+6-ph*.3*k,ww=34-k*8;ctx.beginPath();ctx.moveTo(bx-ww+sway*.3,yy);ctx.lineTo(bx+sway*(k*.3),yy-ph*.5);ctx.lineTo(bx+ww+sway*.3,yy);ctx.fill()}}
+  }
+  ctx.fillStyle="rgba(8,6,16,.55)";ctx.fillRect(0,GY,W,H-GY);
+}
+
+function drawLevel(){
+  var R=REGIONS[S.reg],cx=S.cam;
+
+  // Solid terrain extending to bottom of screen with stratified subterranean earth
+  S.solids.forEach(function(s){
+    if(s.y<0||s.x+s.w<cx-40||s.x>cx+W+40)return;
+    var x0=Math.max(s.x,cx-20),x1=Math.min(s.x+s.w,cx+W+20),sw=x1-x0;
+    if(sw<=0)return;
+
+    // Deep underground body extending to canvas bottom H
+    ctx.fillStyle=R.ground;
+    ctx.fillRect(x0,s.y,sw,H-s.y);
+
+    // Subsoil strata lines & stone masonry
+    for(var sy=s.y+22;sy<H;sy+=28){
+      ctx.fillStyle="rgba(0,0,0,.16)";
+      ctx.fillRect(x0,sy,sw,3);
+
+      // Staggered vertical mortar cuts
+      var off=((sy/28)%2)*24;
+      for(var bx=x0+off;bx<x1;bx+=48){
+        ctx.fillStyle="rgba(0,0,0,.12)";
+        ctx.fillRect(bx,sy,2.5,28);
+      }
+    }
+
+    // Embedded glowing mineral ore flecks
+    for(var cy=s.y+34;cy<H-10;cy+=36){
+      var oreX=s.x+24+((s.x*5+cy*11)%Math.max(20,s.w-48));
+      if(oreX>=x0&&oreX<=x1){
+        ctx.fillStyle=R.oreCol||"#ffd24a";
+        ctx.beginPath();ctx.arc(oreX,cy,3.5,0,TAU);ctx.fill();
+        ctx.fillStyle="#fff";
+        ctx.beginPath();ctx.arc(oreX-1,cy-1,1.5,0,TAU);ctx.fill();
+      }
+    }
+
+    // Hanging organic roots from topsoil into the rock
+    ctx.strokeStyle="rgba(35,22,14,.55)";ctx.lineWidth=2;
+    for(var rx=s.x+18;rx<s.x+s.w-18;rx+=32){
+      if(rx>=x0&&rx<=x1){
+        var rlen=10+(rx%15);
+        ctx.beginPath();
+        ctx.moveTo(rx,s.y+11);
+        ctx.quadraticCurveTo(rx+(rx%5-2),s.y+11+rlen*.5,rx+(rx%7-3),s.y+11+rlen);
+        ctx.stroke();
+      }
+    }
+
+    // Surface Turf Crust
+    ctx.fillStyle=R.top;
+    ctx.fillRect(x0,s.y,sw,12);
+
+    // Overhang grass / frost / rock fringe blades
+    for(var fx=x0;fx<x1-4;fx+=7){
+      var hf=3+(fx%5);
+      ctx.fillRect(fx,s.y+11,3.5,hf);
+    }
+  });
+
+  // Elevated one-way platforms with sturdy supporting pillars down to ground
+  S.ones.forEach(function(s){
+    if(s.x+s.w<cx-40||s.x>cx+W+40)return;
+    var gy=s.groundY||H;
+
+    // Wooden / stone support stilts
+    ctx.fillStyle="#3a2717";
+    ctx.fillRect(s.x+10,s.y+10,5,Math.max(0,gy-(s.y+10)));
+    ctx.fillRect(s.x+s.w-15,s.y+10,5,Math.max(0,gy-(s.y+10)));
+
+    // Metallic mounting brackets
+    ctx.fillStyle="#222";
+    ctx.fillRect(s.x+8,s.y+10,9,4);
+    ctx.fillRect(s.x+s.w-17,s.y+10,9,4);
+
+    // Platform Board
+    ctx.fillStyle=R.plat;ctx.fillRect(s.x,s.y,s.w,12);
+    ctx.fillStyle=R.top;ctx.fillRect(s.x,s.y,s.w,4);
+    ctx.fillStyle="rgba(0,0,0,.15)";ctx.fillRect(s.x,s.y+10,s.w,2);
+  });
+
+  // Draw Left and Right Regional Travel Gateways (Helmet Heroes style)
+  var prevName = REGIONS[(S.reg - 1 + REGIONS.length) % REGIONS.length].name;
+  var nextName = REGIONS[(S.reg + 1) % REGIONS.length].name;
+  drawZoneGate(48, getGroundY(48), "◄ " + prevName, true);
+  drawZoneGate(S.levelW - 65, getGroundY(S.levelW - 65), nextName + " ►", false);
+}
+
+/* ---------- Regional Zone Gateways (Left & Right Realm Borders) ---------- */
+function drawZoneGate(gx, gy, label, isLeft){
+  if(gx < S.cam - 130 || gx > S.cam + W + 130) return;
+  ctx.save();
+  ctx.translate(gx, gy);
+
+  // Stone portal columns
+  ctx.fillStyle = "#334155";
+  ctx.fillRect(-22, -72, 8, 72);
+  ctx.fillRect(14, -72, 8, 72);
+  // Cap beam with runic carvings
+  ctx.fillStyle = "#1e293b";
+  ctx.fillRect(-26, -80, 52, 10);
+  ctx.fillStyle = "#475569";
+  ctx.fillRect(-24, -78, 48, 6);
+
+  // Swirling dimensional gateway vortex
+  var t = S.t * 3;
+  var gl = ctx.createRadialGradient(0, -38, 2, 0, -38, 26);
+  gl.addColorStop(0, "rgba(168,127,251,.95)");
+  gl.addColorStop(0.65, "rgba(115,215,255,.45)");
+  gl.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = gl;
+  ctx.beginPath();
+  ctx.ellipse(0, -38, 16, 32, 0, 0, TAU);
+  ctx.fill();
+
+  // Floating mystical energy motes
+  for(var i=0; i<3; i++){
+    var py = -38 + Math.sin(t + i*2) * 18;
+    var px = Math.cos(t * 1.5 + i*2) * 9;
+    ctx.fillStyle = "#f8fafc";
+    ctx.beginPath();
+    ctx.arc(px, py, 2, 0, TAU);
+    ctx.fill();
+  }
+
+  // Directional Signboard Tag
+  ctx.fillStyle = "rgba(15,23,42,.92)";
+  ctx.beginPath();
+  ctx.roundRect(-65, -100, 130, 20, 5);
+  ctx.fill();
+  ctx.strokeStyle = "#a87ffb";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffd24a";
+  ctx.font = "800 11px Nunito,sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(label, 0, -86);
+
+  ctx.restore();
+}
+
+/* ---------- Drawing Interactive Choppable Trees ---------- */
+function drawTrees(){
+  var reg=S.reg,cx=S.cam;
+  S.trees.forEach(function(t){
+    if(t.x<cx-100||t.x>cx+W+100)return;
+    ctx.save();
+    ctx.translate(t.x,t.y);
+
+    // Always draw a grounded wooden tree stump at the root base
+    ctx.fillStyle="#54371d";
+    ctx.fillRect(-9,-12,18,12);
+    ctx.fillStyle="#916537";
+    ctx.beginPath();ctx.ellipse(0,-12,9,3.5,0,0,TAU);ctx.fill();
+    ctx.strokeStyle="#422912";ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(0,-12,5,2,0,0,TAU);ctx.stroke();
+
+    // If fully felled, tree has fallen over
+    if(t.fell&&t.fallAngle>=Math.PI/2){
+      ctx.restore();
+      return;
+    }
+
+    // Dynamic rotation when chopped or wobbling
+    var wob=t.shake>0?Math.sin(S.t*35)*t.shake*.18:0;
+    ctx.rotate(t.fallAngle*t.fallDir+wob);
+
+    // Tree Trunk
+    var trunkCol=reg===1?"#3d314a":reg===2?"#3a2c22":reg===3?"#261917":"#5c3a1e";
+    ctx.fillStyle=trunkCol;
+    ctx.beginPath();
+    ctx.moveTo(-8,0);ctx.lineTo(-6,-t.h*.6);ctx.lineTo(-4,-t.h);
+    ctx.lineTo(4,-t.h);ctx.lineTo(6,-t.h*.6);ctx.lineTo(8,0);
+    ctx.closePath();ctx.fill();
+
+    // Trunk Bark Grooves
+    ctx.strokeStyle="rgba(0,0,0,.3)";ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(-2,-8);ctx.lineTo(-2,-t.h*.7);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(2,-14);ctx.lineTo(2,-t.h*.5);ctx.stroke();
+
+    // Branches reaching outward
+    ctx.lineWidth=3.5;ctx.strokeStyle=trunkCol;
+    ctx.beginPath();ctx.moveTo(-4,-t.h*.55);ctx.quadraticCurveTo(-14,-t.h*.62,-18,-t.h*.72);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(4,-t.h*.45);ctx.quadraticCurveTo(14,-t.h*.52,18,-t.h*.62);ctx.stroke();
+
+    // Regional Foliage Styles
+    var sway=Math.sin(S.t*1.6+t.x*.04)*2.5;
+    if(reg===0){
+      // Sunny Meadow: Lush Green Layered Cloud Puffs
+      var leaf1="#469b3d",leaf2="#5fba52",leaf3="#7dd96f";
+      // Back puff
+      ctx.fillStyle=leaf1;
+      ctx.beginPath();ctx.arc(sway,-t.h+10,32,0,TAU);ctx.fill();
+      // Side puffs
+      ctx.fillStyle=leaf2;
+      ctx.beginPath();ctx.arc(-20+sway,-t.h+18,24,0,TAU);ctx.fill();
+      ctx.beginPath();ctx.arc(20+sway,-t.h+18,24,0,TAU);ctx.fill();
+      // Front highlights
+      ctx.fillStyle=leaf3;
+      ctx.beginPath();ctx.arc(-6+sway,-t.h-2,20,0,TAU);ctx.fill();
+      ctx.beginPath();ctx.arc(10+sway,-t.h+6,18,0,TAU);ctx.fill();
+    } else if(reg===1){
+      // Bone Caves: Eerie Bioluminescent Spore Clusters
+      ctx.fillStyle="#5e3e82";
+      ctx.beginPath();ctx.ellipse(sway,-t.h+14,28,20,0,0,TAU);ctx.fill();
+      ctx.fillStyle="#8c58bd";
+      ctx.beginPath();ctx.arc(-16+sway,-t.h+18,16,0,TAU);ctx.fill();
+      ctx.beginPath();ctx.arc(16+sway,-t.h+18,16,0,TAU);ctx.fill();
+      // Glowing purple spore nodes
+      ctx.fillStyle="#c49bfb";
+      ctx.beginPath();ctx.arc(-6+sway,-t.h+4,5,0,TAU);ctx.fill();
+      ctx.beginPath();ctx.arc(12+sway,-t.h+12,4,0,TAU);ctx.fill();
+    } else if(reg===2){
+      // Frostlands: Majestic Tiered Snowy Fir Pine
+      var darkPine="#2d5952",snow="#edf7fc";
+      // Tier 1 (bottom)
+      ctx.fillStyle=darkPine;
+      ctx.beginPath();ctx.moveTo(-34+sway*.3,-t.h*.45);ctx.lineTo(0,-t.h*.75);ctx.lineTo(34+sway*.3,-t.h*.45);ctx.closePath();ctx.fill();
+      ctx.fillStyle=snow;ctx.fillRect(-28+sway*.3,-t.h*.48,56,4);
+      // Tier 2 (middle)
+      ctx.fillStyle=darkPine;
+      ctx.beginPath();ctx.moveTo(-28+sway*.6,-t.h*.65);ctx.lineTo(0,-t.h*.95);ctx.lineTo(28+sway*.6,-t.h*.65);ctx.closePath();ctx.fill();
+      ctx.fillStyle=snow;ctx.fillRect(-22+sway*.6,-t.h*.68,44,4);
+      // Tier 3 (top)
+      ctx.fillStyle=darkPine;
+      ctx.beginPath();ctx.moveTo(-20+sway,-t.h*.85);ctx.lineTo(0,-t.h-14);ctx.lineTo(20+sway,-t.h*.85);ctx.closePath();ctx.fill();
+      ctx.fillStyle=snow;
+      ctx.beginPath();ctx.moveTo(-16+sway,-t.h*.88);ctx.lineTo(0,-t.h-16);ctx.lineTo(16+sway,-t.h*.88);ctx.closePath();ctx.fill();
+    } else {
+      // Volcanic Chasm: Charred Ember Ash with Smoke & Fire
+      ctx.fillStyle="#521f19";
+      ctx.beginPath();ctx.ellipse(sway,-t.h+12,26,18,0,0,TAU);ctx.fill();
+      ctx.fillStyle="#8c2e22";
+      ctx.beginPath();ctx.arc(-14+sway,-t.h+16,15,0,TAU);ctx.fill();
+      ctx.beginPath();ctx.arc(14+sway,-t.h+16,15,0,TAU);ctx.fill();
+      // Glowing embers
+      ctx.fillStyle="#ff6f24";
+      ctx.beginPath();ctx.arc(sway,-t.h+6,5,0,TAU);ctx.fill();
+      ctx.beginPath();ctx.arc(-8+sway,-t.h+18,4,0,TAU);ctx.fill();
+    }
+
+    // Health bar if tree has been damaged
+    if(t.hp<t.maxHp&&!t.fell){
+      ctx.fillStyle="rgba(0,0,0,.65)";
+      ctx.fillRect(-20,-t.h-22,40,6);
+      ctx.fillStyle="#6fbf73";
+      ctx.fillRect(-20,-t.h-22,40*Math.max(0,t.hp/t.maxHp),6);
+      ctx.fillStyle="#fff";ctx.font="800 8.5px Nunito,sans-serif";ctx.textAlign="center";
+      ctx.fillText("🪵 TREE",0,-t.h-26);
+    }
+
+    ctx.restore();
+  });
+}
+
+/* ---------- Drawing Shop NPC & Portals ---------- */
+function drawNpc(){
+  var n=S.npc;
+  if(n.x<S.cam-100||n.x>S.cam+W+100)return;
+  ctx.save();
+  ctx.translate(n.x+n.w/2,n.y+n.h);
+
+  // Shop Stall & Wooden Canopy
+  ctx.fillStyle="#452f1e";
+  ctx.fillRect(-28,-50,6,50); // Left post
+  ctx.fillRect(22,-50,6,50);  // Right post
+  ctx.fillStyle="#a33626";    // Red roof
+  ctx.beginPath();
+  ctx.moveTo(-36,-50);ctx.lineTo(36,-50);ctx.lineTo(28,-64);ctx.lineTo(-28,-64);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#f0b030";    // Gold roof stripes
+  ctx.fillRect(-24,-62,8,12);ctx.fillRect(0,-62,8,12);ctx.fillRect(16,-62,8,12);
+
+  // Wooden Counter
+  ctx.fillStyle="#5e412a";ctx.fillRect(-26,-22,52,22);
+  ctx.fillStyle="#3d2817";ctx.fillRect(-26,-22,52,3);
+
+  // Display weapon on counter
+  ctx.save();ctx.translate(14,-25);ctx.rotate(-.5);drawWeaponShape("dagger","#5aa0e6");ctx.restore();
+  ctx.save();ctx.translate(-14,-25);ctx.rotate(.6);drawWeaponShape("handaxe","#f0b030");ctx.restore();
+
+  // Lantern
+  ctx.fillStyle="#222";ctx.fillRect(-26,-36,4,10);
+  ctx.fillStyle="#ffd24a";ctx.beginPath();ctx.arc(-24,-28,5,0,TAU);ctx.fill();
+
+  // Merchant Body
+  var bob=Math.sin(S.t*3)*1.5;
+  ctx.fillStyle="#334d5c";ctx.fillRect(-8,-34+bob,16,14); // Robe
+  ctx.fillStyle="#d4a373";ctx.beginPath();ctx.arc(0,-38+bob,7,0,TAU);ctx.fill(); // Head
+  ctx.fillStyle="#a8533b";ctx.beginPath();ctx.arc(0,-41+bob,8.5,Math.PI,0);ctx.fill(); // Hood
+  ctx.fillStyle="#111";ctx.fillRect(1,-39+bob,2,2);ctx.fillRect(4,-39+bob,2,2); // Eyes
+  ctx.fillStyle="#fff";ctx.fillRect(-2,-35+bob,8,4); // White merchant beard
+
+  // Interactive Prompt Banner
+  if(n.near){
+    var py=-80+Math.sin(S.t*5)*3;
+    ctx.fillStyle="rgba(242,177,52,.95)";
+    ctx.beginPath();ctx.roundRect(-50,py,100,22,6);ctx.fill();
+    ctx.fillStyle="#141b24";ctx.font="800 11px Bungee,sans-serif";ctx.textAlign="center";
+    ctx.fillText("[E] TALK / SHOP",0,py+15);
+  } else {
+    ctx.fillStyle="rgba(0,0,0,.6)";
+    ctx.beginPath();ctx.roundRect(-30,-72,60,16,4);ctx.fill();
+    ctx.fillStyle="#f2b134";ctx.font="700 9px Nunito,sans-serif";ctx.textAlign="center";
+    ctx.fillText("MERCHANT",0,-60);
+  }
+  ctx.restore();
+}
+
+function drawHubPortal(){
+  var p=S.hubPortal;
+  if(p.x<S.cam-100||p.x>S.cam+W+100)return;
+  ctx.save();
+  ctx.translate(p.x+p.w/2,p.y+p.h);
+
+  // Stone portal frame
+  ctx.fillStyle="#2b3b4d";
+  ctx.beginPath();ctx.arc(0,-34,26,Math.PI,0);ctx.lineTo(26,0);ctx.lineTo(-26,0);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#17202b";
+  ctx.beginPath();ctx.arc(0,-34,18,Math.PI,0);ctx.lineTo(18,0);ctx.lineTo(-18,0);ctx.closePath();ctx.fill();
+
+  // Swirling Vortex
+  var gl=ctx.createRadialGradient(0,-34,2,0,-34,24);
+  gl.addColorStop(0,"rgba(200,160,255,.9)");
+  gl.addColorStop(.6,"rgba(168,127,251,.6)");
+  gl.addColorStop(1,"rgba(38,18,74,0)");
+  ctx.fillStyle=gl;
+  ctx.beginPath();ctx.arc(0,-34,20,0,TAU);ctx.fill();
+
+  for(var i=0;i<3;i++){
+    ctx.strokeStyle=i%2?"#e2d6ff":"#a87ffb";
+    ctx.lineWidth=2.5-i*.5;
+    ctx.beginPath();
+    ctx.ellipse(0,-34,14-i*3+Math.sin(S.t*4+i)*2,18-i*3+Math.cos(S.t*4+i)*2,S.t*(i%2?1:-1),0,TAU);
+    ctx.stroke();
+  }
+
+  // Interactive prompt
+  if(p.near){
+    var py=-84+Math.sin(S.t*5)*3;
+    ctx.fillStyle="rgba(168,127,251,.95)";
+    ctx.beginPath();ctx.roundRect(-48,py,96,20,6);ctx.fill();
+    ctx.fillStyle="#141b24";ctx.font="800 11px Bungee,sans-serif";ctx.textAlign="center";
+    ctx.fillText("[T] WARP PORTAL",0,py+14);
+  } else {
+    ctx.fillStyle="rgba(0,0,0,.6)";
+    ctx.beginPath();ctx.roundRect(-24,-76,48,16,4);ctx.fill();
+    ctx.fillStyle="#a87ffb";ctx.font="700 9px Nunito,sans-serif";ctx.textAlign="center";
+    ctx.fillText("PORTAL",0,-64);
+  }
+  ctx.restore();
+}
+
+function drawEndPortal(){
+  var q=S.portal;if(!q)return;
+  ctx.save();ctx.translate(q.x,q.y-34);
+  var gl=ctx.createRadialGradient(0,0,4,0,0,60);gl.addColorStop(0,"rgba(155,123,255,.6)");gl.addColorStop(1,"rgba(155,123,255,0)");ctx.fillStyle=gl;ctx.fillRect(-60,-60,120,120);
+  for(var i=0;i<4;i++){ctx.strokeStyle=i%2?"#d8c9ff":"#9b7bff";ctx.lineWidth=4-i*.6;ctx.beginPath();ctx.ellipse(0,0,22-i*3+Math.sin(q.t*3+i)*2,32-i*4+Math.cos(q.t*3+i)*2,q.t*(i%2?1:-1)*.5,0,TAU);ctx.stroke()}
+  ctx.restore();
+}
+
+/* ---------- Distinct Weapon Design Sprites ---------- */
+function drawWeaponShape(type,c,pBend){
+  var br="#5b3d22",gold="#e0b84a",hl="rgba(255,255,255,.6)",iron="#2a323d";
+
+  if(type==="dagger"){
+    // Fast short knife
+    ctx.fillStyle=br;ctx.fillRect(-1.5,-4,3,8);ctx.fillStyle=gold;ctx.fillRect(-4.5,4,9,2);
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(-2.5,6);ctx.lineTo(2.5,6);ctx.lineTo(1.5,22);ctx.lineTo(0,29);ctx.lineTo(-2,22);ctx.closePath();ctx.fill();
+    ctx.fillStyle=hl;ctx.fillRect(-.4,7,1.2,16);
+  }else if(type==="sword"){
+    // 1-Handed Arming Sword
+    ctx.fillStyle=br;ctx.fillRect(-1.5,-4,3,10);ctx.beginPath();ctx.arc(0,-5,2.5,0,TAU);ctx.fill();
+    ctx.fillStyle=gold;ctx.fillRect(-7,6,14,3);
+    ctx.fillStyle=c;ctx.fillRect(-2.5,9,5,34);ctx.beginPath();ctx.moveTo(-2.5,43);ctx.lineTo(0,51);ctx.lineTo(2.5,43);ctx.fill();
+    ctx.fillStyle=hl;ctx.fillRect(-.5,10,1.5,32);
+  }else if(type==="greatsword"){
+    // 2-Handed Massive Claymore
+    ctx.fillStyle=iron;ctx.fillRect(-2,-12,4,16);ctx.fillStyle=gold;ctx.beginPath();ctx.arc(0,-13,3.5,0,TAU);ctx.fill();
+    ctx.fillStyle=gold;ctx.fillRect(-12,4,24,4.5);
+    ctx.fillStyle=c;ctx.fillRect(-4.5,8.5,9,56);
+    ctx.beginPath();ctx.moveTo(-4.5,64.5);ctx.lineTo(0,74);ctx.lineTo(4.5,64.5);ctx.fill();
+    ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(-1,10,2,48); // Fuller groove
+    ctx.fillStyle=hl;ctx.fillRect(1.5,10,1.5,48);
+  }else if(type==="handaxe"){
+    // 1-Handed Hatchet
+    ctx.fillStyle=br;ctx.fillRect(-1.5,-4,3,38);
+    ctx.fillStyle=c;
+    ctx.beginPath();ctx.moveTo(1.5,20);ctx.lineTo(14,16);ctx.lineTo(16,30);ctx.lineTo(1.5,28);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=hl;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(14,16);ctx.lineTo(16,30);ctx.stroke();
+    ctx.fillStyle=gold;ctx.fillRect(-2.5,20,5,2);ctx.fillRect(-2.5,28,5,2);
+  }else if(type==="battleaxe"){
+    // 2-Handed Double-Bladed Giant Battleaxe
+    ctx.fillStyle=br;ctx.fillRect(-2,-8,4,58);
+    // Right blade
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(2,32);ctx.quadraticCurveTo(22,26,20,44);ctx.quadraticCurveTo(20,58,2,52);ctx.closePath();ctx.fill();
+    // Left blade
+    ctx.beginPath();ctx.moveTo(-2,32);ctx.quadraticCurveTo(-22,26,-20,44);ctx.quadraticCurveTo(-20,58,-2,52);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=hl;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(19,30);ctx.quadraticCurveTo(22,44,19,54);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-19,30);ctx.quadraticCurveTo(-22,44,-19,54);ctx.stroke();
+    ctx.fillStyle=gold;ctx.fillRect(-3.5,36,7,12);ctx.beginPath();ctx.arc(0,42,4,0,TAU);ctx.fill();
+  }else if(type==="spear"){
+    // 2-Handed Longspear
+    ctx.fillStyle=br;ctx.fillRect(-1.5,-12,3,74);
+    ctx.fillStyle="#d2452f";ctx.fillRect(-3,56,6,5); // Red tassel
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(0,84);ctx.lineTo(6,66);ctx.lineTo(0,60);ctx.lineTo(-6,66);ctx.closePath();ctx.fill();
+    ctx.fillStyle=hl;ctx.beginPath();ctx.moveTo(0,80);ctx.lineTo(2,66);ctx.lineTo(0,62);ctx.fill();
+  }else if(type==="hammer"){
+    // 2-Handed War Hammer
+    ctx.fillStyle=br;ctx.fillRect(-2,-6,4,54);
+    ctx.fillStyle=c;ctx.fillRect(-12,40,24,15);
+    ctx.fillStyle="rgba(0,0,0,.35)";ctx.fillRect(-12,40,4,15);ctx.fillRect(8,40,4,15);
+    ctx.fillStyle=hl;ctx.fillRect(-8,42,16,2);
+    ctx.fillStyle=gold;ctx.fillRect(-3.5,38,7,3);
+  }else if(type==="scythe"){
+    // 2-Handed Crescent Scythe
+    ctx.fillStyle=br;ctx.fillRect(-1.5,-8,3,66);ctx.fillStyle=gold;ctx.fillRect(-2.5,52,5,2);
+    ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(1.5,50);ctx.quadraticCurveTo(32,48,28,78);ctx.lineTo(23,68);ctx.quadraticCurveTo(16,58,1.5,58);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=hl;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(4,52);ctx.quadraticCurveTo(28,50,27,74);ctx.stroke();
+  }else if(type==="bow"){
+    // Recurve Bow with dynamic limbs bending & taut/drawn string (handle centered at 0,0)
+    var bend=Math.max(0,Math.min(1.2,pBend||0));
+    var limbPull=bend*7,stringPull=-bend*18;
+
+    // Bow Limbs
+    ctx.strokeStyle="#8c5b30";ctx.lineWidth=3.5;ctx.lineCap="round";
+    // Upper Limb
+    ctx.beginPath();ctx.moveTo(0,-5);
+    ctx.bezierCurveTo(7-limbPull*.3,-16,4-limbPull*.8,-26,-3-limbPull,-34);
+    ctx.stroke();
+    // Lower Limb
+    ctx.beginPath();ctx.moveTo(0,5);
+    ctx.bezierCurveTo(7-limbPull*.3,16,4-limbPull*.8,26,-3-limbPull,34);
+    ctx.stroke();
+
+    // Riser Leather Hand Grip
+    ctx.fillStyle="#4a2e16";ctx.fillRect(-2,-6,4,12);
+    ctx.fillStyle=gold;ctx.fillRect(-2.5,-6,5,2);ctx.fillRect(-2.5,4,5,2);
+
+    // Bowstring
+    ctx.strokeStyle="rgba(245,245,245,.9)";ctx.lineWidth=1.2;
+    ctx.beginPath();
+    ctx.moveTo(-3-limbPull,-34);
+    ctx.lineTo(stringPull-2,0);
+    ctx.lineTo(-3-limbPull,34);
+    ctx.stroke();
+
+    // Nocked Arrow when drawn or resting
+    if(bend>0.05||pBend===undefined){
+      var arrowBack=stringPull-2,arrowLen=30;
+      ctx.fillStyle="#b58d59";ctx.fillRect(arrowBack,-1,arrowLen,2);
+      ctx.fillStyle=c;ctx.beginPath();
+      ctx.moveTo(arrowBack+arrowLen,0);ctx.lineTo(arrowBack+arrowLen-6,-3.5);ctx.lineTo(arrowBack+arrowLen-4,0);ctx.lineTo(arrowBack+arrowLen-6,3.5);ctx.closePath();ctx.fill();
+      ctx.fillStyle="#d2452f";ctx.beginPath();
+      ctx.moveTo(arrowBack,0);ctx.lineTo(arrowBack-4,-3);ctx.lineTo(arrowBack+2,0);ctx.lineTo(arrowBack-4,3);ctx.closePath();ctx.fill();
+    }
+  }else if(type==="gun"){
+    // Flintlock Pistol / Blunderbuss (Grip centered at 0,0, barrel extending along +Y)
+    // Wooden Stock & Grip
+    ctx.fillStyle=br;
+    ctx.beginPath();
+    ctx.moveTo(-2,-8);
+    ctx.quadraticCurveTo(-4,-2,-2,4);
+    ctx.lineTo(2.5,4);
+    ctx.quadraticCurveTo(1.5,-2,2,-8);
+    ctx.closePath();
+    ctx.fill();
+    // Brass Butt Plate
+    ctx.fillStyle=gold;
+    ctx.beginPath();ctx.ellipse(0,-8,2.8,1.8,0.1,0,TAU);ctx.fill();
+    // Trigger Guard & Trigger
+    ctx.strokeStyle=gold;ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.arc(1.2,2.8,2.8,0,Math.PI);ctx.stroke();
+    ctx.fillStyle="#1a1a1a";ctx.fillRect(1,1.8,1.2,2.5);
+    // Flintlock Lockplate & Hammer
+    ctx.fillStyle=iron;ctx.fillRect(-3.5,1,3.5,5);
+    ctx.fillStyle="#bbb";ctx.beginPath();ctx.arc(-2,0.5,2,0,TAU);ctx.fill();
+    // Steel Barrel extending along +Y (straight forward in aim direction)
+    ctx.fillStyle=iron;ctx.fillRect(-2.5,2,5,22);
+    ctx.fillStyle=hl;ctx.fillRect(-0.8,3,1.6,20);
+    // Ornate Rarity Band & Brass Mounting Clamp
+    ctx.fillStyle=c;ctx.fillRect(-3,7,6,3);
+    ctx.fillStyle=gold;ctx.fillRect(-3,16,6,2.5);
+    // Flared Blunderbuss Muzzle Bell
+    ctx.fillStyle=gold;
+    ctx.beginPath();
+    ctx.moveTo(-4,24);ctx.lineTo(-6,27);ctx.lineTo(6,27);ctx.lineTo(4,24);
+    ctx.closePath();ctx.fill();
+    // Dark Muzzle Bore
+    ctx.fillStyle="#111";
+    ctx.beginPath();ctx.ellipse(0,27,4.2,1.6,0,0,TAU);ctx.fill();
+  }
+}
+
+var WEXT={
+  dagger:[-4,29],sword:[-6,51],greatsword:[-12,74],handaxe:[-4,38],
+  battleaxe:[-8,58],spear:[-12,84],hammer:[-6,55],scythe:[-8,78],bow:[-34,34],gun:[-8,27]
+};
+var icoCache={},icoUrl={};
+
+function iconCanvas(it){
+  var key=it.slot+(it.type||"")+it.rar;if(icoCache[key])return icoCache[key];
+  var c=document.createElement("canvas");c.width=c.height=64;
+  var g=c.getContext("2d"),old=ctx;ctx=g;
+  try{
+    ctx.translate(32,32);
+    if(it.slot==="weapon"){
+      var ex=WEXT[it.type]||[-6,50],sc=Math.min(1.5,72/(ex[1]-ex[0]));
+      ctx.rotate(-3*Math.PI/4);ctx.scale(sc,sc);ctx.translate(0,-(ex[0]+ex[1])/2);
+      drawWeaponShape(it.type,RC[it.rar]);
+    } else glyph(it.slot,RC[it.rar],2.2);
+  }finally{ctx=old}
+  icoCache[key]=c;return c;
+}
+function iconSrc(it){var key=it.slot+(it.type||"")+it.rar;if(!icoUrl[key])icoUrl[key]=iconCanvas(it).toDataURL();return icoUrl[key]}
+
+function glyph(slot,c,s){
+  ctx.fillStyle=c;
+  if(slot==="helmet"){ctx.beginPath();ctx.arc(0,0,9*s,Math.PI,0);ctx.lineTo(9*s,5*s);ctx.lineTo(-9*s,5*s);ctx.fill();ctx.fillStyle="#000";ctx.fillRect(-5*s,-1*s,10*s,3*s)}
+  else if(slot==="weapon"){ctx.save();ctx.rotate(-.7);ctx.fillRect(-2*s,-11*s,4*s,18*s);ctx.fillStyle="#5b3d22";ctx.fillRect(-6*s,5*s,12*s,3*s);ctx.restore()}
+  else{ctx.fillRect(-8*s,-8*s,16*s,16*s);ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(-2*s,-8*s,4*s,16*s)}
+}
+
+/* ---------- Drawing Player with Distinct Attack Animations ---------- */
+function limb(x,y,a,len,w,col){ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.fillStyle=col;ctx.fillRect(-w/2,0,w,len);ctx.restore()}
+
+function drawPlayer(){
+  var p=P,cx=p.x+p.w/2,fy=p.y+p.h,eq=p.eq,moving=p.ground&&Math.abs(p.vx)>30,air=!p.ground;
+  var wt=eq.weapon.type,W_=WT[wt];
+  if(p.ground){ctx.fillStyle="rgba(0,0,0,.28)";ctx.beginPath();ctx.ellipse(cx,fy,13,4,0,0,TAU);ctx.fill()}
+  ctx.save();ctx.translate(cx,fy);ctx.scale(p.face*p.sx,p.sy);
+  if(p.invul>0&&Math.floor(S.t*22)%2===0)ctx.globalAlpha=.45;
+
+  var bob=moving?Math.abs(Math.sin(p.run))*-2:Math.sin(S.t*3)*.8;
+  var legA=air?(p.vy<0?.7:-.35):(moving?Math.sin(p.run)*.95:0);
+  var k=p.at>0?1-p.at/p.atDur:-1,thr=0;
+  
+  var hasOff=!!eq.offhand,offType=hasOff?eq.offhand.type:null,offCol=hasOff?RC[eq.offhand.rar]:null;
+  var isDualGuns=wt==="gun"&&offType==="gun";
+  var isDualBlades=hasOff&&!W_.ranged&&!WT[offType].ranged;
+
+  // Base arm angles
+  var armA=-.5+(moving?Math.sin(p.run+Math.PI)*.5:Math.sin(S.t*3)*.08);
+  var leftArmA=hasOff?(-.6+(moving?Math.sin(p.run)*.4:Math.sin(S.t*3)*.08)):(.4+(moving?Math.sin(p.run)*.5:0));
+
+  if(air)armA=p.vy<0?-1.2:-.2;
+
+  /* Specific Weapon Attack Animations */
+  var bowBend=0;
+  if(wt==="bow"){
+    if(k>=0){
+      if(k<.42){
+        bowBend=k/.42;
+        armA=-1.55; // Front arm points straight forward holding bow
+        leftArmA=-1.55+bowBend*.35; // Back hand pulls bowstring back towards cheek
+      }else{
+        // String release snap with elastic oscillation
+        bowBend=Math.max(0,1-(k-.42)*6)*Math.sin((k-.42)*35)*.3;
+        armA=-1.55;
+        leftArmA=-1.1;
+      }
+    }else{
+      armA=-.55+(moving?Math.sin(p.run+Math.PI)*.4:Math.sin(S.t*3)*.06);
+    }
+  }else if(k>=0){
+    if(isDualGuns){
+      // Dual guns firing in quick succession
+      armA=k<.22?-1.55:-1.95+((k-.22)/.78)*.5;
+      leftArmA=k<.34?-1.52:-1.92+((k-.34)/.66)*.5;
+    }else if(isDualBlades){
+      // Dual blades cross-slashing!
+      armA=k<.25?-2.4:-2.6+((k-.25)/.75)*3.2;
+      leftArmA=k<.32?-.3:-.3-((k-.32)/.68)*2.8;
+    }else if(hasOff&&wt==="gun"){
+      armA=k<.22?-1.55:-1.95+((k-.22)/.78)*.5;
+      leftArmA=-1.1+Math.sin(k*Math.PI)*.4;
+    }else if(hasOff&&offType==="gun"){
+      armA=k<.25?-2.4:-2.6+((k-.25)/.75)*3.2;
+      leftArmA=k<.35?-1.55:-1.95+((k-.35)/.65)*.5;
+    }else if(W_.anim==="dagger"){
+      // Rapid double jab
+      armA=-1.4+Math.sin(k*TAU*2)*.25;
+      thr=Math.sin(k*TAU)*12;
+    }else if(W_.anim==="spear"){
+      // Deep 2-handed forward thrust
+      armA=-1.45;
+      thr=Math.sin(Math.min(1,k)*Math.PI)*22;
+      leftArmA=-1.3;
+    }else if(W_.anim==="gun"){
+      // Aim forward, explosive kickback
+      if(k<.25){
+        armA=-1.55;
+      }else{
+        // Recoil kick up and back
+        armA=-1.95+((k-.25)/.75)*.5;
+      }
+    }else if(W_.anim==="greatsword"){
+      // Heavy 2-handed windup over shoulder then massive downward cleave
+      var w1=W_.w1;
+      if(k<w1){
+        armA=-2.8-(k/w1)*.4; // Lift way back
+        leftArmA=armA+.2;
+      }else{
+        var pr=(k-w1)/(1-w1);
+        armA=-3.2+pr*4.2; // Slam downward
+        leftArmA=armA+.3;
+      }
+    }else if(W_.anim==="battleaxe"){
+      // Full overhead circular spin
+      var w1=W_.w1;
+      armA=k<w1?-1.8-(k/w1)*1.6:-3.4+((k-w1)/(1-w1))*3.8;
+      leftArmA=armA+.25;
+    }else if(W_.anim==="hammer"){
+      // Heavy skyward raise then straight ground slam
+      var w1=W_.w1;
+      armA=k<w1?-2.6-(k/w1)*.6:-3.2+((k-w1)/(1-w1))*3.8;
+      leftArmA=armA+.2;
+    }else if(W_.anim==="handaxe"){
+      // Fast downward chop
+      armA=k<.3?-2.2:-2.2+((k-.3)/.7)*3.0;
+    }else{
+      // Standard sword / scythe arc
+      var w1=W_.w1;
+      armA=k<w1?-.5-(k/w1)*2.4:k<w1+.3?-2.9+((k-w1)/.3)*3.2:.3-((k-w1-.3)/(1-w1-.3))*.8;
+      if(W_.hand==="two")leftArmA=armA+.2;
+    }
+  }
+
+  var ac=RC[eq.armor.rar],hc=RC[eq.helmet.rar],wc=RC[eq.weapon.rar];
+
+  // Back Arm & Offhand Weapon Anchor
+  ctx.save();
+  ctx.translate(-5,-27+bob);
+  ctx.rotate(leftArmA);
+  ctx.fillStyle="#d8ae86";ctx.fillRect(-2.5,0,5,11);
+  if(hasOff){
+    ctx.save();
+    ctx.translate(0,11);
+    drawWeaponShape(offType,offCol);
+    ctx.restore();
+    // Hand knuckles / glove wrapped firmly over off-hand weapon handle
+    ctx.fillStyle="#d8ae86";ctx.beginPath();ctx.arc(0,11,3.8,0,TAU);ctx.fill();
+    ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(-2.5,9.5,5,2.2);
+  }else if(wt==="bow"&&k>=0){
+    // Back hand pulling bowstring & nocked arrow
+    ctx.fillStyle="#d8ae86";ctx.beginPath();ctx.arc(0,11,3.6,0,TAU);ctx.fill();
+    ctx.fillStyle="#2c1c0e";ctx.fillRect(-2,9,4,3);
+  }
+  ctx.restore();
+  ctx.fillStyle=ac;ctx.beginPath();ctx.arc(-7,-23+bob,6,0,TAU);ctx.fill();
+  ctx.fillStyle="rgba(0,0,0,.25)";ctx.beginPath();ctx.arc(-7,-23+bob,2.8,0,TAU);ctx.fill();
+
+  // Legs
+  limb(-4,-14+bob,-legA,14,6,"#4a3a2c");limb(4,-14+bob,legA,14,6,"#5a4636");
+
+  // Torso & Armor
+  ctx.fillStyle=ac;ctx.fillRect(-9,-31+bob,18,18);
+  ctx.fillStyle="rgba(0,0,0,.25)";ctx.fillRect(-9,-18+bob,18,3);
+  ctx.fillStyle="rgba(255,255,255,.18)";ctx.fillRect(-9,-31+bob,18,3);
+
+  // Head
+  ctx.fillStyle="#f1c9a0";ctx.beginPath();ctx.arc(0,-38+bob,8,0,TAU);ctx.fill();
+  ctx.fillStyle=hc;ctx.beginPath();ctx.arc(0,-39+bob,10.5,Math.PI,0);ctx.lineTo(10.5,-35+bob);ctx.lineTo(-10.5,-35+bob);ctx.fill();
+  ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(-10.5,-36.5+bob,21,2);
+  ctx.fillStyle="#1b1b1b";ctx.fillRect(1,-39+bob,9,3);
+  ctx.fillStyle=hc;ctx.beginPath();ctx.moveTo(-3,-49+bob);ctx.quadraticCurveTo(p.plume-4,-60+bob-Math.sin(S.t*6)*1,p.plume-9,-50+bob+(p.plume<-6?6:0));ctx.quadraticCurveTo(-2,-52+bob,3,-48+bob);ctx.fill();
+
+  // Main Weapon Arm & Hand Anchor (Grip centered firmly in hand)
+  ctx.save();ctx.translate(4,-27+bob);ctx.rotate(armA);
+  ctx.fillStyle="#d8ae86";ctx.fillRect(-2.5,0,5,11);
+  if(wt==="bow"){
+    // Position bow riser directly in the front hand, oriented forward
+    ctx.save();
+    ctx.translate(0,11);
+    ctx.rotate(Math.PI/2);
+    drawWeaponShape("bow",wc,bowBend);
+    ctx.restore();
+    // Leather archer glove wrapped over the bow riser grip
+    ctx.fillStyle="#d8ae86";ctx.beginPath();ctx.arc(0,11,3.8,0,TAU);ctx.fill();
+    ctx.fillStyle="#2c1c0e";ctx.fillRect(-2.5,9.5,5,2.5);
+  } else {
+    ctx.save();ctx.translate(0,11+thr);drawWeaponShape(wt,wc);ctx.restore();
+    // Hand knuckles / glove wrapped firmly over the handle / gun grip
+    ctx.fillStyle="#d8ae86";ctx.beginPath();ctx.arc(0,11+thr,3.8,0,TAU);ctx.fill();
+    ctx.fillStyle="rgba(0,0,0,.3)";ctx.fillRect(-2.5,9.5+thr,5,2.2);
+  }
+  ctx.restore();
+  ctx.fillStyle=ac;ctx.beginPath();ctx.arc(4,-25+bob,6,0,TAU);ctx.fill();
+
+  // Weapon Attack Slashing & Thrust Trails
+  if(k>=0&&!W_.ranged){
+    if(W_.thrust||W_.anim==="dagger"){
+      var Lr=W_.reach*Math.min(1,k/.4);
+      ctx.save();ctx.lineCap="round";ctx.globalAlpha=Math.max(0,1-k)*.85;
+      ctx.strokeStyle="#fff";ctx.lineWidth=wt==="spear"?4:2.5;ctx.beginPath();ctx.moveTo(12,-24+bob);ctx.lineTo(12+Lr,-24+bob);ctx.stroke();
+      ctx.strokeStyle=wc;ctx.lineWidth=8;ctx.globalAlpha*=.35;ctx.beginPath();ctx.moveTo(12,-24+bob);ctx.lineTo(12+Lr*.9,-24+bob);ctx.stroke();
+      ctx.restore();
+    }else if(wt!=="hammer"){
+      var pr=(k-W_.w1)/.45;
+      if(pr>=0&&pr<1){
+        var rad=wt==="greatsword"?74:wt==="scythe"?66:wt==="battleaxe"?58:wt==="handaxe"?44:48;
+        var a0=-2.7,a1=a0+pr*3.6;
+        ctx.save();ctx.translate(4,-27+bob);ctx.globalAlpha=(1-pr)*.9;ctx.lineCap="round";
+        ctx.strokeStyle="#fff";ctx.lineWidth=wt==="greatsword"?9:6;ctx.beginPath();ctx.arc(0,0,rad,Math.max(a0,a1-1.6),a1);ctx.stroke();
+        ctx.strokeStyle=wc;ctx.lineWidth=wt==="greatsword"?16:11;ctx.globalAlpha=(1-pr)*.4;ctx.beginPath();ctx.arc(0,0,rad-2,Math.max(a0,a1-2.2),a1);ctx.stroke();
+        ctx.restore();
+      }
+    }
+    if(isDualBlades&&k>=0.12&&k<0.85){
+      var offPr=(k-0.12)/0.73;
+      ctx.save();ctx.translate(-5,-27+bob);ctx.globalAlpha=(1-offPr)*.85;ctx.lineCap="round";
+      ctx.strokeStyle="#fff";ctx.lineWidth=5;ctx.beginPath();
+      ctx.arc(0,0,48,Math.PI*.7-offPr*2.5,Math.PI*.7);ctx.stroke();
+      ctx.strokeStyle=offCol;ctx.lineWidth=9;ctx.globalAlpha=(1-offPr)*.4;ctx.beginPath();
+      ctx.arc(0,0,46,Math.PI*.7-offPr*2.5,Math.PI*.7);ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawEnemy(e){
+  var m=MOB[e.type],F=e.flash>0,cx=e.x+e.w/2,t=e.t*1+e.ph,fly=e.kind==="fly",oy=fly?e.y+e.h/2:e.y+e.h,sc=e.s;
+  function c(x){return F?"#fff":x}
+  if(!fly&&e.ground){ctx.fillStyle="rgba(0,0,0,.28)";ctx.beginPath();ctx.ellipse(cx,e.y+e.h,e.w*.55,4*sc,0,0,TAU);ctx.fill()}
+  ctx.save();ctx.translate(cx,oy);
+  var sx=1+.22*e.sq,sy=1-.22*e.sq;
+  if(!e.ground&&!fly){sy=1+Math.min(.3,Math.abs(e.vy)/900);sx=1/sy}
+  ctx.scale(e.dir*sc*sx,sc*sy);
+  var col=m.col,sw=Math.sin(t*(Math.abs(e.vx)>20?10:2));
+  if(e.type==="slime"){
+    var br=Math.sin(t*4)*.05;ctx.scale(1+br,1-br);
+    ctx.fillStyle=c(col);ctx.beginPath();ctx.moveTo(-14,0);ctx.quadraticCurveTo(-15,-30,0,-30);ctx.quadraticCurveTo(15,-30,14,0);ctx.closePath();ctx.fill();
+    ctx.fillStyle=F?"#fff":"rgba(255,255,255,.35)";ctx.beginPath();ctx.ellipse(-6,-20,4,2.5,-.5,0,TAU);ctx.fill();
+    ctx.fillStyle="#111";ctx.fillRect(2,-17,3,5);ctx.fillRect(8,-17,3,5);
+  }else if(e.type==="goblin"){
+    var wob=Math.abs(sw)*-1.5;
+    limb(-4,-9,sw*.8,9,5,c("#6c8a2a"));limb(4,-9,-sw*.8,9,5,c("#6c8a2a"));
+    ctx.fillStyle=c(col);ctx.fillRect(-7,-21+wob,14,13);
+    ctx.beginPath();ctx.arc(1,-25+wob,7,0,TAU);ctx.fill();
+    ctx.beginPath();ctx.moveTo(-5,-26+wob);ctx.lineTo(-13,-30+wob);ctx.lineTo(-4,-22+wob);ctx.fill();ctx.beginPath();ctx.moveTo(6,-27+wob);ctx.lineTo(13,-33+wob);ctx.lineTo(8,-22+wob);ctx.fill();
+    ctx.fillStyle="#111";ctx.fillRect(3,-27+wob,2.5,3);
+    ctx.save();ctx.translate(7,-16+wob);ctx.rotate(-.8+sw*.4);ctx.fillStyle=c("#6b4a2b");ctx.fillRect(-1.5,0,3,13);ctx.fillRect(-3,10,6,6);ctx.restore();
+  }else if(e.type==="skeleton"){
+    var wb=Math.abs(sw)*-1;
+    limb(-3,-14,sw*.7,14,3,c(col));limb(3,-14,-sw*.7,14,3,c(col));
+    ctx.fillStyle=c(col);ctx.fillRect(-6,-27+wb,12,3);ctx.fillRect(-6,-22+wb,12,3);ctx.fillRect(-6,-17+wb,12,3);ctx.fillRect(-1,-28+wb,2,14);
+    ctx.beginPath();ctx.arc(0,-33+wb,7,0,TAU);ctx.fill();ctx.fillRect(-4,-30+wb,8,6);
+    ctx.fillStyle="#222";ctx.fillRect(0,-35+wb,3,3.5);ctx.fillRect(-5,-35+wb,3,3.5);
+    ctx.save();ctx.translate(6,-24+wb);ctx.rotate(-.6+sw*.35);ctx.fillStyle=c("#c0c6cc");ctx.fillRect(-1.5,0,3,18);ctx.fillStyle=c("#5b3d22");ctx.fillRect(-4,0,8,3);ctx.restore();
+  }else if(e.type==="yeti"){
+    var wy=Math.abs(sw)*-1.5;
+    limb(-8,-16,sw*.6,16,10,c("#cfdce8"));limb(8,-16,-sw*.6,16,10,c("#cfdce8"));
+    ctx.fillStyle=c(col);ctx.beginPath();ctx.ellipse(0,-28+wy,17,17,0,0,TAU);ctx.fill();
+    limb(-15,-34+wy,.3-sw*.5,22,9,c("#cfdce8"));limb(15,-34+wy,-.3+sw*.5,22,9,c("#cfdce8"));
+    ctx.fillStyle=c("#9fc1da");ctx.beginPath();ctx.ellipse(3,-36+wy,9,8,0,0,TAU);ctx.fill();
+    ctx.fillStyle="#111";ctx.fillRect(3,-39+wy,3,4);ctx.fillRect(8,-39+wy,3,4);ctx.fillRect(4,-32+wy,7,2);
+  }else if(e.type==="bat"){
+    var fl=Math.sin(t*20);
+    ctx.fillStyle=c("#4d3569");
+    ctx.beginPath();ctx.moveTo(-3,0);ctx.lineTo(-20,-8*fl-6);ctx.lineTo(-14,4);ctx.lineTo(-9,-1);ctx.lineTo(-3,6);ctx.fill();
+    ctx.beginPath();ctx.moveTo(3,0);ctx.lineTo(20,-8*fl-6);ctx.lineTo(14,4);ctx.lineTo(9,-1);ctx.lineTo(3,6);ctx.fill();
+    ctx.fillStyle=c(col);ctx.beginPath();ctx.ellipse(0,0,7,8,0,0,TAU);ctx.fill();
+    ctx.beginPath();ctx.moveTo(-6,-5);ctx.lineTo(-5,-12);ctx.lineTo(-1,-6);ctx.fill();ctx.beginPath();ctx.moveTo(6,-5);ctx.lineTo(5,-12);ctx.lineTo(1,-6);ctx.fill();
+    ctx.fillStyle="#ff5a5a";ctx.fillRect(1,-3,2.5,2.5);ctx.fillRect(-3,-3,2.5,2.5);
+  }else{
+    var pu=1+Math.sin(t*5)*.12,gl=ctx.createRadialGradient(0,0,2,0,0,24*pu);gl.addColorStop(0,F?"#fff":"rgba(160,235,255,.9)");gl.addColorStop(1,"rgba(115,215,255,0)");
+    ctx.fillStyle=gl;ctx.fillRect(-26,-26,52,52);
+    ctx.fillStyle=c("#d8f6ff");ctx.beginPath();ctx.moveTo(0,-11*pu);ctx.quadraticCurveTo(9,-2,0,10);ctx.quadraticCurveTo(-9,-2,0,-11*pu);ctx.fill();
+    ctx.fillStyle="#1a5a78";ctx.fillRect(-1,-3,2,3);ctx.fillRect(3,-3,2,3);
+  }
+  if(e.boss){ctx.fillStyle=c("#f2b134");var cy=e.type==="slime"?-32:e.type==="skeleton"?-42:-47;
+    ctx.beginPath();ctx.moveTo(-8,cy);ctx.lineTo(-9,cy-9);ctx.lineTo(-4,cy-4);ctx.lineTo(0,cy-11);ctx.lineTo(4,cy-4);ctx.lineTo(9,cy-9);ctx.lineTo(8,cy);ctx.fill()}
+  ctx.restore();
+  if(e.hp<e.max&&!e.boss){var bw=Math.max(24,e.w);ctx.fillStyle="rgba(0,0,0,.6)";ctx.fillRect(cx-bw/2,e.y-12,bw,5);ctx.fillStyle="#e4572e";ctx.fillRect(cx-bw/2,e.y-12,bw*Math.max(0,e.hp/e.max),5)}
+}
+
+function drawPickups(){
+  S.pick.forEach(function(o){
+    if(o.x<S.cam-30||o.x>S.cam+W+30)return;
+    if(o.kind==="coin"){
+      var w=Math.abs(Math.cos(S.t*4+o.ph))*6+1;
+      ctx.fillStyle="#c9901c";ctx.beginPath();ctx.ellipse(o.x+7,o.y+7,w+1,8,0,0,TAU);ctx.fill();
+      ctx.fillStyle="#ffd24a";ctx.beginPath();ctx.ellipse(o.x+7,o.y+7,w,6.5,0,0,TAU);ctx.fill();
+    }else if(o.kind==="log"){
+      // 3D wood log with bark & growth rings
+      var bob=Math.sin(S.t*4+o.ph)*2.5;
+      ctx.save();
+      ctx.translate(o.x+9,o.y+6+bob);
+      ctx.fillStyle="rgba(0,0,0,.25)";ctx.beginPath();ctx.ellipse(0,9,9,3,0,0,TAU);ctx.fill();
+      // Bark cylinder
+      ctx.fillStyle="#704422";
+      ctx.beginPath();ctx.roundRect(-9,-6,18,12,3);ctx.fill();
+      ctx.fillStyle="#8c582d";
+      ctx.fillRect(-7,-6,14,3);
+      // Cut wood end face with growth rings
+      ctx.fillStyle="#dfb382";
+      ctx.beginPath();ctx.ellipse(8,0,3,5.5,0,0,TAU);ctx.fill();
+      ctx.strokeStyle="#5c381c";ctx.lineWidth=1;
+      ctx.beginPath();ctx.ellipse(8,0,1.5,3,0,0,TAU);ctx.stroke();
+      // Little green leaf sprout
+      ctx.fillStyle="#6fbf73";
+      ctx.beginPath();ctx.ellipse(-3,-8,4,2,-.4,0,TAU);ctx.fill();
+      ctx.restore();
+    }else{
+      var bob=Math.sin(S.t*4+o.ph)*3,c=RC[o.it.rar];
+      if(o.it.rar>=2){var bg=ctx.createLinearGradient(0,o.y-60,0,o.y+8);bg.addColorStop(0,"rgba(255,255,255,0)");bg.addColorStop(1,c);ctx.globalAlpha=.45+.2*Math.sin(S.t*5);ctx.fillStyle=bg;ctx.fillRect(o.x,o.y-60,16,70);ctx.globalAlpha=1}
+      ctx.fillStyle="rgba(0,0,0,.3)";ctx.beginPath();ctx.ellipse(o.x+8,o.y+17,8,3,0,0,TAU);ctx.fill();
+      ctx.globalAlpha=.3;ctx.fillStyle=c;ctx.beginPath();ctx.arc(o.x+8,o.y+8+bob,15,0,TAU);ctx.fill();ctx.globalAlpha=1;
+      ctx.save();ctx.translate(o.x+8,o.y+8+bob);ctx.drawImage(iconCanvas(o.it),-15,-15,30,30);ctx.restore();
+    }
+  });
+}
+
+function drawProjectiles(){
+  S.proj.forEach(function(pj){
+    ctx.save();
+    ctx.translate(pj.x,pj.y);
+    if(pj.type==="arrow"){
+      var angle=Math.atan2(pj.vy,pj.vx);
+      ctx.rotate(angle);
+      // Wooden shaft
+      ctx.fillStyle="#8c6239";ctx.fillRect(-12,-1.5,24,3);
+      // Arrowhead
+      ctx.fillStyle="#e2e8f0";
+      ctx.beginPath();ctx.moveTo(12,-3.5);ctx.lineTo(17,0);ctx.lineTo(12,3.5);ctx.closePath();ctx.fill();
+      // Fletching feathers
+      ctx.fillStyle="#e4572e";
+      ctx.beginPath();ctx.moveTo(-12,0);ctx.lineTo(-16,-3);ctx.lineTo(-14,0);ctx.lineTo(-16,3);ctx.closePath();ctx.fill();
+    }else if(pj.type==="bullet"){
+      // Fast golden bullet slug
+      ctx.fillStyle="#ffd24a";
+      ctx.beginPath();ctx.ellipse(0,0,6,2.5,0,0,TAU);ctx.fill();
+      ctx.fillStyle="#fff";
+      ctx.beginPath();ctx.ellipse(2,0,3,1.5,0,0,TAU);ctx.fill();
+    }
+    ctx.restore();
+  });
+}
+
+function drawParts(){
+  S.parts.forEach(function(q){
+    var a=Math.max(0,q.l/q.max);
+    if(q.type==="ring"){ctx.globalAlpha=a;ctx.strokeStyle=q.c;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(q.x,q.y,q.sz*(1-a),q.sz*(1-a)*.4,0,0,TAU);ctx.stroke();ctx.globalAlpha=1}
+    else if(q.type==="spark"){ctx.globalAlpha=a;ctx.strokeStyle=q.c;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(q.x,q.y);ctx.lineTo(q.x-q.vx*.04,q.y-q.vy*.04);ctx.stroke();ctx.globalAlpha=1}
+    else{ctx.globalAlpha=a;ctx.fillStyle=q.c;ctx.beginPath();ctx.arc(q.x,q.y,q.sz*(q.g<0?(2-a):a),0,TAU);ctx.fill();ctx.globalAlpha=1}
+  });
+}
+
+function drawFg(){
+  var am=REGIONS[S.reg].amb;
+  S.amb.forEach(function(a){
+    if(am==="snow"){ctx.fillStyle="rgba(255,255,255,.85)";ctx.beginPath();ctx.arc(a.x,a.y,a.s,0,TAU);ctx.fill()}
+    else if(am==="leaf"){ctx.save();ctx.translate(a.x,a.y);ctx.rotate(a.ph*2);ctx.fillStyle="rgba(110,180,80,.85)";ctx.fillRect(-3,-1.5,6,3);ctx.restore()}
+    else if(am==="ember"){ctx.fillStyle="rgba(255,140,40,"+(.4+.4*Math.sin(a.ph*3))+")";ctx.beginPath();ctx.arc(a.x,a.y,a.s*1.2,0,TAU);ctx.fill()}
+    else{ctx.fillStyle="rgba(190,160,255,"+(.3+.3*Math.sin(a.ph*2))+")";ctx.beginPath();ctx.arc(a.x,a.y,a.s,0,TAU);ctx.fill()}
+  });
+}
+
+function draw(){
+  var sh=S.shake,ox=sh?rnd(-sh,sh)*.5:0,oy=sh?rnd(-sh,sh)*.5:0;
+  ctx.save();ctx.translate(ox,oy);
+  drawBg();
+  ctx.save();ctx.translate(-Math.round(S.cam),0);
+  drawLevel();
+  drawTrees();
+  drawNpc();
+  drawHubPortal();
+  drawPickups();
+  drawEndPortal();
+  drawProjectiles();
+  S.en.forEach(drawEnemy);
+  drawPlayer();
+  drawParts();
+  S.fx.forEach(function(f){
+    ctx.globalAlpha=Math.max(0,Math.min(1,f.l*1.5));
+    ctx.font="800 15px Nunito,sans-serif";
+    ctx.textAlign="center";
+    ctx.lineWidth=3;ctx.strokeStyle="#000";ctx.strokeText(f.t,f.x,f.y);
+    ctx.fillStyle=f.c;ctx.fillText(f.t,f.x,f.y);
+    ctx.globalAlpha=1;
+  });
+  ctx.restore();
+  drawFg();
+  ctx.restore();
+
+  var champ = S.en.find(function(e){ return e.boss; });
+  if(champ){
+    var bw=320,bx=(W-bw)/2;
+    ctx.fillStyle="rgba(0,0,0,.65)";ctx.fillRect(bx-4,H-36,bw+8,22);
+    ctx.fillStyle="#e4572e";ctx.fillRect(bx,H-33,bw*Math.max(0,champ.hp/champ.max),16);
+    ctx.fillStyle="#fff";ctx.font="800 11px Nunito,sans-serif";ctx.textAlign="center";
+    ctx.fillText("✦ Roaming Champion: "+REGIONS[S.reg].bossName,W/2,H-21);
+  }
+}
+
+/* ---------- UI & Navigation ---------- */
+function $(id){return document.getElementById(id)}
+
+function hud(){
+  var p=P,hp=Math.max(0,Math.ceil(p.hp));
+  var prog="Free World · "+REGIONS[S.reg].name+" ("+S.en.length+" Mobs)";
+  var key=[p.lvl,hp,maxHp(),Math.round(p.xp),S.reg,S.tier,prog,p.gold,p.wood||0].join("|");
+  if(key===hudCache)return;hudCache=key;
+  $("lvl").textContent="Lv "+p.lvl+"  "+hp+"/"+maxHp();
+  $("hpb").firstElementChild.style.width=Math.max(0,p.hp/maxHp()*100)+"%";
+  $("xpb").firstElementChild.style.width=(p.xp/need()*100)+"%";
+  $("reg").textContent=REGIONS[S.reg].name;
+  $("kills").textContent=prog;
+  $("gold").textContent=p.gold+" gold · "+(p.wood||0)+" logs";
+}
+
+function stat(it){
+  return it.slot==="weapon"?"+"+it.val+" power · "+WT[it.type].desc:it.slot==="helmet"?"+"+it.val*3+" HP":"+"+Math.floor(it.val/2)+" defense";
+}
+function cardInner(it,name){
+  return '<span class="ico"><img src="'+iconSrc(it)+'" width="44" height="44" alt=""></span><span class="tx"><b style="color:'+RC[it.rar]+'">'+(name||it.name)+'</b><small>'+RAR[it.rar]+" "+(it.slot==="weapon"?WT[it.type].name:it.slot)+" · "+stat(it)+'</small></span>';
+}
+
+function renderBag(){
+  if($("bagGoldTxt"))$("bagGoldTxt").textContent=P.gold;
+  if($("bagWoodTxt"))$("bagWoodTxt").textContent=P.wood||0;
+  var h="";
+  // 1. Helmet
+  if(P.eq.helmet)h+='<div class="it" style="cursor:default;border-color:'+RC[P.eq.helmet.rar]+'">'+cardInner(P.eq.helmet)+'</div>';
+  // 2. Main Hand Weapon
+  if(P.eq.weapon)h+='<div class="it" style="cursor:default;border-color:'+RC[P.eq.weapon.rar]+'"><span class="ico"><img src="'+iconSrc(P.eq.weapon)+'" width="44" height="44" alt=""></span><span class="tx"><b style="color:'+RC[P.eq.weapon.rar]+'">Main Hand: '+P.eq.weapon.name+'</b><small>'+RAR[P.eq.weapon.rar]+' '+WT[P.eq.weapon.type].name+' · '+stat(P.eq.weapon)+'</small></span></div>';
+  // 3. Off-Hand Weapon Slot
+  if(P.eq.weapon&&WT[P.eq.weapon.type].hand==="two"){
+    h+='<div class="it" style="opacity:0.55;border-color:#555;cursor:not-allowed;" title="Main weapon requires two hands"><span class="ico" style="opacity:.45">⚔️</span><span class="tx"><b style="color:#aaa">Off-Hand Locked</b><small>Occupied by 2-Handed '+WT[P.eq.weapon.type].name+'</small></span></div>';
+  }else if(P.eq.offhand){
+    var off=P.eq.offhand;
+    h+='<div class="it" data-unequip-off="1" style="cursor:pointer;border-color:'+RC[off.rar]+'" title="Click to unequip off-hand weapon"><span class="ico"><img src="'+iconSrc(off)+'" width="44" height="44" alt=""></span><span class="tx"><b style="color:'+RC[off.rar]+'">Off-Hand: '+off.name+'</b><small style="color:#ffd24a">✦ Dual-Wield Active (Click to Unequip)</small><small>+'+off.val+' power · '+WT[off.type].desc+'</small></span></div>';
+  }else{
+    h+='<div class="it" style="border:1.5px dashed rgba(255,255,255,.2);background:rgba(0,0,0,.2);cursor:default;"><span class="ico" style="opacity:.45">⚔️</span><span class="tx"><b style="color:#9e9e9e">Empty Off-Hand</b><small>Click any 1-handed weapon below to Dual-Wield!</small></span></div>';
+  }
+  // 4. Armor
+  if(P.eq.armor)h+='<div class="it" style="cursor:default;border-color:'+RC[P.eq.armor.rar]+'">'+cardInner(P.eq.armor)+'</div>';
+  $("slots").innerHTML=h;
+
+  var w=WT[P.eq.weapon.type];
+  var offTxt=P.eq.offhand?" + Dual "+WT[P.eq.offhand.type].name:"";
+  $("stats").innerHTML='<span>Damage <b>'+dmgOut()+'</b></span><span>Reach <b>'+w.reach+'</b></span><span>Max HP <b>'+maxHp()+'</b></span><span>Defense <b>'+defense()+'</b></span><span>Loadout <b>'+w.name+offTxt+'</b></span><span>Gold <b>'+P.gold+'</b></span><span>Logs <b>'+(P.wood||0)+'</b></span>';
+  var inv="";
+  P.inv.forEach(function(it,i){
+    inv+='<div style="display:flex;flex-direction:column;gap:4px;min-width:0">'
+      +'<button class="it" data-i="'+i+'" style="border-color:'+RC[it.rar]+';cursor:pointer;" title="Click to equip '+it.name+'">'
+      +cardInner(it)
+      +'</button>'
+      +'<button class="btn" data-s="'+i+'" style="padding:4px 8px;font-size:11.5px">Sell for '+price(it)+'g</button>'
+      +'</div>';
+  });
+  $("inv").innerHTML=inv||'<div class="sub">Your bag is empty. Monsters drop gear and gold.</div>';
+}
+
+function openBagModal(){
+  renderBag();
+  $("bagModal").hidden=false;
+  $("bagBtn").setAttribute("aria-expanded","true");
+  $("bagBtn").textContent="Close Bag (B)";
+  keys={};touch.l=touch.r=touch.j=touch.a=0;
+}
+function closeBagModal(){
+  $("bagModal").hidden=true;
+  $("bagBtn").setAttribute("aria-expanded","false");
+  $("bagBtn").textContent="Open Bag (B)";
+}
+function toggleBagModal(){
+  if($("bagModal").hidden)openBagModal();
+  else closeBagModal();
+}
+
+function shopPrice(t){return Math.round(WT[t].base*(1+S.tier*.6+P.lvl*.04))}
+
+function renderScreenShop(){
+  $("shopGoldTxt").textContent=P.gold;
+  $("shopWoodTxt").textContent=P.wood||0;
+  if($("sell1WoodBtn"))$("sell1WoodBtn").disabled=!(P.wood>0);
+  if($("sellAllWoodBtn"))$("sellAllWoodBtn").disabled=!(P.wood>0);
+  var h="";
+  WK.forEach(function(t){
+    var w=WT[t],it=mk("weapon",w.srar,t),pr=shopPrice(t),can=P.gold>=pr&&P.inv.length<24;
+    h+='<div class="it" style="cursor:default;border-color:'+RC[it.rar]+'"><span class="ico"><img src="'+iconSrc(it)+'" width="44" height="44" alt=""></span><span class="tx"><b style="color:'+RC[it.rar]+'">'+it.name+'</b><small>'+RAR[it.rar]+" · "+w.desc+'</small><small>Power +'+it.val+' · Hand: '+w.hand+' · Reach '+w.reach+'</small><button class="btn buy" data-buy="'+t+'"'+(can?'':' disabled')+'>Buy for '+pr+'g</button></span></div>';
+  });
+  $("screenShopGrid").innerHTML=h;
+}
+
+function openShopModal(){
+  renderScreenShop();
+  $("shopModal").hidden=false;
+  $("shopBtn").setAttribute("aria-expanded","true");
+  $("shopBtn").textContent="Close Shop (E)";
+  keys={};touch.l=touch.r=touch.j=touch.a=0;
+}
+function closeShopModal(){
+  $("shopModal").hidden=true;
+  $("shopBtn").setAttribute("aria-expanded","false");
+  $("shopBtn").textContent="Merchant Shop (E)";
+}
+function toggleShopModal(){
+  if($("shopModal").hidden)openShopModal();
+  else closeShopModal();
+}
+
+function sellWood(count){
+  var current=P.wood||0;
+  if(current<=0){toast("You don't have any wood logs! Chop trees with your weapon.");return}
+  var qty=Math.min(current,count);
+  var earn=qty*15;
+  P.wood-=qty;
+  P.gold+=earn;
+  burst(P.x+11,P.y+10,"#ffd166",10+qty*2,180,"spark");
+  toast("Sold "+qty+" wood log"+(qty>1?"s":"")+" to Gimbal for +"+earn+" gold!");
+  refresh();
+}
+
+function renderRealmList(){
+  var h="";
+  REGIONS.forEach(function(r,idx){
+    var active=idx===S.reg;
+    h+='<button class="realm-btn" data-reg="'+idx+'" style="'+(active?'border-color:var(--accent);background:#2f4157':'')+'">'
+      +'<b>'+r.name+(active?' (Current)':'')+'</b>'
+      +'<small>Enemies: '+r.mobs.join(", ")+'</small>'
+      +'<small style="color:var(--accent);">Boss: '+r.bossName+' · '+r.rec+'</small>'
+      +'</button>';
+  });
+  $("realmList").innerHTML=h;
+}
+
+function openPortalModal(){
+  renderRealmList();
+  $("portalModal").hidden=false;
+  keys={};touch.l=touch.r=touch.j=touch.a=0;
+}
+function closePortalModal(){
+  $("portalModal").hidden=true;
+}
+
+function warpToRegion(regIdx){
+  closePortalModal();
+  shake(8);
+  burst(P.x+11,P.y+18,"#a87ffb",30,300,"spark");
+  ring(P.x+11,P.y+18,"#a87ffb",70);
+  setTimeout(function(){
+    enterRegion(regIdx);
+  },200);
+}
+
+function refresh(){
+  hudCache="";
+  hud();
+  if(!$("bagModal").hidden)renderBag();
+  if(!$("shopModal").hidden)renderScreenShop();
+  updateAttackLabel();
+}
+
+function equip(i){
+  var it=P.inv[i];if(!it)return;
+  if(it.slot==="weapon"){
+    var wInfo=WT[it.type];
+    if(wInfo.hand==="two"){
+      // 2-Handed weapon takes both hands. If an offhand weapon is equipped, return it to bag!
+      if(P.eq.offhand){
+        P.inv.push(P.eq.offhand);
+        P.eq.offhand=null;
+        toast("Off-hand unequipped for 2-handed weapon grip.");
+      }
+      var oldW=P.eq.weapon;
+      P.eq.weapon=it;
+      P.inv.splice(i,1);
+      if(oldW)P.inv.push(oldW);
+      toast("Equipped 2-Handed "+it.name+"!");
+    } else {
+      // 1-Handed weapon (sword, gun, dagger, handaxe)
+      // If main hand is already 1-handed and offhand is empty:
+      if(P.eq.weapon&&WT[P.eq.weapon.type].hand==="one"&&!P.eq.offhand){
+        P.eq.offhand=it;
+        P.inv.splice(i,1);
+        toast("Dual-Wielding! Equipped "+it.name+" in Off-Hand!");
+      } else {
+        // Replace main weapon
+        var oldW=P.eq.weapon;
+        P.eq.weapon=it;
+        P.inv.splice(i,1);
+        if(oldW)P.inv.push(oldW);
+        toast("Equipped "+it.name+" in Main Hand!");
+      }
+    }
+  } else {
+    var old=P.eq[it.slot];
+    P.eq[it.slot]=it;
+    P.inv.splice(i,1);
+    if(old)P.inv.push(old);
+    toast("Equipped "+it.name+"!");
+  }
+  P.hp=Math.min(P.hp,maxHp());
+  burst(P.x+11,P.y+18,RC[it.rar],12,180,"spark");
+  refresh();
+}
+function sell(i){
+  var it=P.inv[i];if(!it)return;
+  P.gold+=price(it);P.inv.splice(i,1);refresh();
+}
+function junk(){
+  var keep=[],g=0;
+  P.inv.forEach(function(it){if(it.val<=P.eq[it.slot].val)g+=price(it);else keep.push(it)});
+  P.inv=keep;P.gold+=g;toast("Sold junk for "+g+" gold");refresh();
+}
+function buy(t){
+  var pr=shopPrice(t);
+  if(P.gold<pr){toast("Not enough gold");return}
+  if(P.inv.length>=24){toast("Your bag is full");return}
+  P.gold-=pr;var it=mk("weapon",WT[t].srar,t);P.inv.push(it);
+  toast("Bought "+it.name+"! Click it in your bag to equip.");refresh();
+}
+
+$("slots").addEventListener("click",function(e){
+  var b=e.target.closest("[data-unequip-off]");
+  if(b&&P.eq.offhand){
+    if(P.inv.length>=24){toast("Your bag is full!");return;}
+    var off=P.eq.offhand;
+    P.eq.offhand=null;
+    P.inv.push(off);
+    toast("Unequipped "+off.name+" from off-hand.");
+    refresh();
+  }
+});
+$("inv").addEventListener("click",function(e){
+  var t=e.target.closest("[data-i],[data-s]");if(!t)return;
+  if(t.hasAttribute("data-i"))equip(+t.getAttribute("data-i"));else sell(+t.getAttribute("data-s"));
+});
+$("junk").addEventListener("click",junk);
+$("screenShopGrid").addEventListener("click",function(e){
+  var b=e.target.closest("[data-buy]");if(b&&!b.disabled)buy(b.getAttribute("data-buy"));
+});
+$("sell1WoodBtn").addEventListener("click",function(){sellWood(1)});
+$("sellAllWoodBtn").addEventListener("click",function(){sellWood(P.wood||0)});
+$("closeShopXBtn").addEventListener("click",closeShopModal);
+$("closeShopBtn").addEventListener("click",closeShopModal);
+$("closeBagXBtn").addEventListener("click",closeBagModal);
+$("closeBagBtn").addEventListener("click",closeBagModal);
+$("realmList").addEventListener("click",function(e){
+  var b=e.target.closest("[data-reg]");if(b)warpToRegion(+b.getAttribute("data-reg"));
+});
+$("closePortalBtn").addEventListener("click",closePortalModal);
+$("portalBtn").addEventListener("click",openPortalModal);
+
+function bagOpen(){return !$("bagModal").hidden||!$("shopModal").hidden||!$("portalModal").hidden}
+
+$("bagBtn").addEventListener("click",toggleBagModal);
+$("shopBtn").addEventListener("click",toggleShopModal);
+
+// In-canvas click handling for NPC & Portal
+cv.addEventListener("click",function(e){
+  var rect=cv.getBoundingClientRect();
+  var scaleX=W/rect.width,scaleY=H/rect.height;
+  var clickX=(e.clientX-rect.left)*scaleX+S.cam;
+  var clickY=(e.clientY-rect.top)*scaleY;
+
+  // Click on NPC
+  if(clickX>=S.npc.x-25&&clickX<=S.npc.x+S.npc.w+25&&clickY>=S.npc.y-50&&clickY<=S.npc.y+S.npc.h+30){
+    toggleShopModal();
+    return;
+  }
+  // Click on Portal
+  if(clickX>=S.hubPortal.x-25&&clickX<=S.hubPortal.x+S.hubPortal.w+25&&clickY>=S.hubPortal.y-50&&clickY<=S.hubPortal.y+S.hubPortal.h+30){
+    openPortalModal();
+    return;
+  }
+});
+
+function press(k){
+  // SPACE BAR is ATTACK! Also support J, X, Z, Enter
+  if(k===" "||k==="j"||k==="x"||k==="z"||k==="Enter"){
+    if(!keys[k])P.abuf=.12;
+  }
+  // W, ArrowUp, K, C are JUMP!
+  else if(k==="w"||k==="ArrowUp"||k==="k"||k==="c"){
+    if(!keys[k])P.jbuf=.12;
+  }
+}
+
+window.addEventListener("keydown",function(e){
+  var k=e.key.length===1?e.key.toLowerCase():e.key;
+  if(k==="escape"||k==="esc"){
+    if(!$("bagModal").hidden){closeBagModal();return}
+    if(!$("shopModal").hidden){closeShopModal();return}
+    if(!$("portalModal").hidden){closePortalModal();return}
+  }
+  if(k==="b"){toggleBagModal();return}
+  if(k==="v"||(k==="e"&&(!S.hubPortal||!S.hubPortal.near))){
+    if(!$("shopModal").hidden){closeShopModal();return}
+    if(S.npc&&S.npc.near){openShopModal();return}
+    toggleShopModal();
+    return;
+  }
+  if(k==="t"||(k==="e"&&S.hubPortal&&S.hubPortal.near)){
+    if(!$("portalModal").hidden){closePortalModal();return}
+    openPortalModal();
+    return;
+  }
+  if(bagOpen())return;
+  press(k);keys[k]=true;
+  if(k===" "||k.indexOf("Arrow")===0)e.preventDefault();
+});
+
+window.addEventListener("keyup",function(e){var k=e.key.length===1?e.key.toLowerCase():e.key;keys[k]=false});
+window.addEventListener("blur",function(){keys={};touch.l=touch.r=touch.j=touch.a=0});
+
+function hold(id,name,onDown){
+  var b=$(id);
+  b.addEventListener("pointerdown",function(e){e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}touch[name]=1;b.classList.add("on");if(onDown)onDown()});
+  function up(){touch[name]=0;b.classList.remove("on")}
+  b.addEventListener("pointerup",up);b.addEventListener("pointercancel",up);b.addEventListener("lostpointercapture",up);
+}
+hold("bl","l");hold("br","r");
+hold("bj","j",function(){P.jbuf=.12});
+hold("ba","a",function(){P.abuf=.12});
+
+var last=0;
+function loop(t){
+  var dt=Math.min(0.033,(t-last)/1000||0);last=t;
+  if(!bagOpen())update(dt);
+  draw();requestAnimationFrame(loop);
+}
+
+newGame();renderBag();hud();
+requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>
